@@ -1,44 +1,30 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from Document import Document
+from TextPreprocessor import TextPreprocessor
 import os
 
 class VectorSpaceModel:
-    def __init__(self, preprocessor):
-        self.preprocessor = preprocessor
-        self.vectorizer = TfidfVectorizer()
+    def __init__(self,tfidf_builder):
+        """
+        Initialize the Vector Space Model.
+        :param tfidf_builder: An instance of the TF_IDF_Builder class.
+        """
+        self.preprocessor = TextPreprocessor()
+        self.tfidf_builder = tfidf_builder
         self.tfidf_matrix = None
-        self.documents = []
 
     def load_documents(self, folder_path):
         """
-        Load all .txt documents from the given folder, preprocess them,
-        and store their content in the `documents` dictionary.
+        Load documents using the TF_IDF_Builder.
         """
-        self.documents = []
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if file.endswith('.txt'):
-                    file_path = os.path.join(root, file)
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        text = f.read()
-                        preprocessed_text = self.preprocessor.preprocess(text)
-                        file_extension = os.path.splitext(file)[1]  # Get the file extension
-                        document = Document(file, file_path, text, preprocessed_text, file_extension)
-                        self.documents.append(document)
-        if not self.documents:
-            raise ValueError("No .txt files found in the specified folder.")
-        return self.documents
+        return self.tfidf_builder.load_documents(folder_path)
 
     def build_index(self):
         """
-        Build the TF-IDF index for the loaded documents.
+        Build the TF-IDF index using the TF_IDF_Builder.
         """
-        if not self.documents:
-            raise ValueError("No documents loaded. Use `load_documents()` first.")
-        
-        preprocessed_texts = [doc_data.preprocessed_text for doc_data in self.documents]
-        self.tfidf_matrix = self.vectorizer.fit_transform(preprocessed_texts)
+        self.tfidf_builder.build_index()
+        self.tfidf_matrix = self.tfidf_builder.get_tfidf_matrix()
 
     def search(self, query, page = 1, results_per_page= 12):
         """
@@ -48,8 +34,8 @@ class VectorSpaceModel:
         if self.tfidf_matrix is None:
             raise ValueError("TF-IDF index not built. Load documents and build the index first.")
         
-        processed_query = self.preprocessor.preprocess(query)
-        query_vector = self.vectorizer.transform([processed_query])
+        processed_query = self.tfidf_builder.preprocessor.preprocess(query)
+        query_vector = self.tfidf_builder.vectorizer.transform([processed_query])
         similarities = cosine_similarity(query_vector, self.tfidf_matrix).flatten()
 
         # Rank documents by similarity scores
@@ -60,7 +46,7 @@ class VectorSpaceModel:
             score = similarities[idx]
             if score > 0:  # Include only documents with non-zero similarity
                 # Match the index to the corresponding document
-                doc= self.documents[idx]
+                doc= self.tfidf_builder.documents[idx]
                 snippet = self.generate_snippet(doc.original_text, query.split())
                 all_results.append({
                     "file_name": doc.file_name,
@@ -112,7 +98,4 @@ class VectorSpaceModel:
         end_index = min(len(tokens), query_indices[0] + snippet_length // 2)
         
         snippet = " ".join(tokens[start_index:end_index])
-        # Highlight query terms
-        for term in query_terms_lower:
-            snippet = snippet.replace(term, f"<b>{term}</b>")
         return snippet + "..." if end_index < len(tokens) else snippet

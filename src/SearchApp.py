@@ -2,7 +2,9 @@ import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk, PhotoImage
 from VectorSpaceModel import VectorSpaceModel
+from BestMatching25 import BM25
 from TextPreprocessor import TextPreprocessor
+from TF_IDF_Builder import TF_IDF_Builder
 import asyncio
 from utils import IconLoadUtilities
 import threading
@@ -10,7 +12,9 @@ import threading
 class SearchApp:
     def __init__(self, master):
         self.master = master
-        self.vsm = VectorSpaceModel(TextPreprocessor())
+        self.tf_idf= TF_IDF_Builder(TextPreprocessor())
+        self.vsm = VectorSpaceModel(self.tf_idf)
+        self.bm25 = BM25(self.tf_idf)
         self.folder_path = None
         self.current_page = 1
         self.query = ""
@@ -51,8 +55,14 @@ class SearchApp:
             return
 
         try:
+            #Build VSM Index
             self.vsm.load_documents(self.folder_path)
             self.vsm.build_index()
+
+            #Build BM25 Index
+            self.bm25.load_documents(self.folder_path)
+            self.bm25.build_index()
+
             messagebox.showinfo("Success", "Index built successfully!")
             self.page2()
         except Exception as e:
@@ -126,8 +136,34 @@ class SearchApp:
             return
 
         self.current_page = 1
-        results = self.vsm.search(self.query, page=self.current_page)
+        vsm_results = self.vsm.search(self.query, page=self.current_page)
+        bm25_results = self.bm25.search(self.query, page= self.current_page)
+
+        results = self.combine_results(vsm_results, bm25_results)
         await self.display_results(results)
+
+    def combine_results(self, vsm_results, bm25_results):
+        """
+        Combines results from VSM and BM25 into a single list for display.
+        Assumes both VSM and BM25 return paginated results with the same structure.
+        """
+        combined_results = []
+        for vsm_result, bm25_result in zip(vsm_results["results"], bm25_results["results"]):
+            combined_results.append({
+                "file_name": vsm_result["file_name"],
+                "path": vsm_result["path"],
+                "extension": vsm_result["extension"],
+                "date": vsm_result["date"],
+                "vsm_score": vsm_result["score"],
+                "bm25_score": bm25_result["score"],
+                "snippet": vsm_result["snippet"],  # Assuming snippets are the same
+            })
+
+        return {
+            "results": combined_results,
+            "has_previous_page": vsm_results["has_previous_page"],
+            "has_next_page": vsm_results["has_next_page"]
+        }
 
     def load_icons_in_background(self, results, font_height):
         # Load the icon once (or as needed for different file types)
@@ -155,7 +191,8 @@ class SearchApp:
         # Add results to the Treeview without icons initially
         self.current_results = results["results"]  # Store results for details view
         for i, result in enumerate(results["results"]):
-            self.results_tree.insert("", tk.END, iid=i, text="", values=(result["file_name"],))
+            self.results_tree.insert("", tk.END, iid=i, text="", 
+            values=(result["file_name"], f"VSM: {result['vsm_score']:.2f}, BM25: {result['bm25_score']:.2f}"))
 
         # Load icons
         #self.load_icons_in_background(results, font_height)
@@ -183,7 +220,8 @@ class SearchApp:
             f"Path: {selected_doc['path']}\n"
             f"File Type: {selected_doc['extension']}\n"
             f"Date: {selected_doc['date']}\n"
-            f"Score: {selected_doc['score']:.2f}"
+            f"VSM Score: {selected_doc['vsm_score']:.2f}\n"
+            f"BM25 Score: {selected_doc['bm25_score']:.2f}"
         )
         self.metadata_label.config(text=metadata_text)
 
