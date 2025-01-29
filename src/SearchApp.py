@@ -1,14 +1,14 @@
-import json
-import os
+import json,os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk, PhotoImage
 from VectorSpaceModel import VectorSpaceModel
 from BestMatching25 import BM25
 from TextPreprocessor import TextPreprocessor
 from TF_IDF_Builder import TF_IDF_Builder
-import asyncio
+from SearchLogger import SearchLogger
 from utils import IconLoadUtilities
-import threading
+import threading, asyncio
+from datetime import datetime
 
 class SearchApp:
     def __init__(self, master):
@@ -21,6 +21,8 @@ class SearchApp:
         self.query = ""
         self.txt_image = None
         self.utils = IconLoadUtilities(master)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.logger = SearchLogger(f"Search_log_{timestamp}.log")
 
         # Start on Page 1
         self.page1()
@@ -138,6 +140,8 @@ class SearchApp:
 
     async def search(self):
         self.query = self.query_entry.get().strip()
+        self.logger.log_query(self.query)
+        
         if not self.query:
             messagebox.showwarning("Warning", "Please enter a query.")
             return
@@ -295,11 +299,18 @@ class SearchApp:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to read the file: {e}")
             return
+        
+
+         # Log the document opening
+        self.logger.log_click(self.query, selected_doc["doc_id"], selected_doc["file_name"])
 
         # Create a new popup window to display content
         popup = tk.Toplevel(self.master)
         popup.title(f"Viewing: {selected_doc['file_name']}")
         popup.geometry("600x400")
+
+        # Bind close event to log the time spent
+        popup.protocol("WM_DELETE_WINDOW", lambda: self.close_document(selected_doc, popup))
 
         # Add a scrollable Text widget to display file content
         text_widget = tk.Text(popup, wrap=tk.WORD)
@@ -332,6 +343,15 @@ class SearchApp:
         # Save interaction data back to file
         with open("interaction_data.json", "w") as f:
             json.dump(self.interaction_data, f)
+
+    def close_document(self, selected_doc, popup):
+        """Logs when a document is closed and records time spent."""
+        doc_id = selected_doc["doc_id"]
+
+        if doc_id in self.logger.opened_docs:
+            self.logger.log_close(self.query, doc_id, selected_doc["file_name"])
+
+        popup.destroy()  # Close the pop-up window
 
 
 # Main Program
