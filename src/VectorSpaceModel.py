@@ -49,6 +49,7 @@ class VectorSpaceModel:
                 doc= self.tfidf_builder.documents[idx]
                 snippet = self.generate_snippet(doc.original_text, query.split())
                 all_results.append({
+                    "doc_id": doc.doc_id,
                     "file_name": doc.file_name,
                     "path": doc.path,
                     "score": similarities[idx],

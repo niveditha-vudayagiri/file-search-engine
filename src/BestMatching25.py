@@ -1,3 +1,4 @@
+import json
 import math
 from collections import Counter
 from TextPreprocessor import TextPreprocessor
@@ -53,6 +54,20 @@ class BM25:
         doc_length = self.doc_lengths[doc_idx]
         term_frequencies = Counter(doc.preprocessed_text.split())
 
+        # Load interaction data
+        try:
+            with open("interaction_data.json", "r") as f:
+                self.interaction_data = json.load(f)
+        except FileNotFoundError:
+            self.interaction_data = {}
+
+        # Adjust BM25 parameters if relevant documents exist for the query
+        if query in self.interaction_data:
+            total_views = sum(doc["views"] for doc in self.interaction_data[query].values())
+            if total_views > 0:
+                self.b += 0.05 * (total_views / 10)  # Increase b based on total interactions
+                self.k1 -= 0.05 * (total_views / 10)  # Decrease k1 based on interactions
+
         score = 0
         for term in query_terms:
             if term in self.doc_frequencies:
@@ -86,6 +101,7 @@ class BM25:
                 doc = self.tfidf_builder.documents[idx]
                 snippet = self.generate_snippet(doc.original_text, query.split())
                 all_results.append({
+                    "doc_id": doc.doc_id,
                     "file_name": doc.file_name,
                     "path": doc.path,
                     "score": score,

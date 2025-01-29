@@ -1,7 +1,7 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from Document import Document
 import os
-
+import hashlib
 
 class TF_IDF_Builder:
     def __init__(self, preprocessor):
@@ -14,22 +14,26 @@ class TF_IDF_Builder:
         self.documents = []
         self.tfidf_matrix = None
 
+    def generate_doc_id(self,filename):
+        return hashlib.md5(filename.encode()).hexdigest()
+
     def load_documents(self, folder_path):
         """
         Load all .txt documents from the given folder, preprocess them,
         and store their content in the `documents` list.
         """
+
         self.documents = []
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if file.endswith('.txt'):
-                    file_path = os.path.join(root, file)
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        text = f.read()
-                        preprocessed_text = self.preprocessor.preprocess(text)
-                        file_extension = os.path.splitext(file)[1]  # Get the file extension
-                        document = Document(file, file_path, text, preprocessed_text, file_extension)
-                        self.documents.append(document)
+        for idx, file in enumerate(os.listdir(folder_path)):
+            file_path = os.path.join(folder_path, file)
+            if os.path.isfile(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    text = f.read()
+                    preprocessed_text = self.preprocessor.preprocess(text)
+                    file_extension = os.path.splitext(file)[1]  # Get the file extension
+                    doc_id = self.generate_doc_id(file);
+                    document = Document(doc_id,file, file_path, text, preprocessed_text, file_extension)
+                    self.documents.append(document)
 
         if not self.documents:
             raise ValueError("No .txt files found in the specified folder.")

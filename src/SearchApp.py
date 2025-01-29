@@ -1,3 +1,4 @@
+import json
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk, PhotoImage
@@ -119,6 +120,12 @@ class SearchApp:
         self.snippet_text.pack(fill=tk.BOTH, expand=True, padx=10)
         self.snippet_text.config(state=tk.DISABLED)
 
+        # View Content
+        self.view_content_button = tk.Button(
+            self.details_frame, text="View Full Content", command=self.view_file_content
+        )
+        self.view_content_button.pack(pady=10)
+
         # Pagination
         self.pagination_frame = tk.Frame(self.master)
         self.pagination_frame.pack(pady=10)
@@ -150,6 +157,7 @@ class SearchApp:
         combined_results = []
         for vsm_result, bm25_result in zip(vsm_results["results"], bm25_results["results"]):
             combined_results.append({
+                "doc_id": vsm_result["doc_id"],
                 "file_name": vsm_result["file_name"],
                 "path": vsm_result["path"],
                 "extension": vsm_result["extension"],
@@ -257,6 +265,73 @@ class SearchApp:
 
     def search_button_handler(self):
         asyncio.run(self.search())
+    
+    def view_file_content(self):
+        # Get selected item from Treeview
+        selected_item = self.results_tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Warning", "Please select a document first.")
+            return
+
+        # Get the index of the selected document
+        selected_index = int(selected_item[0])  # Treeview item ID corresponds to the index
+        selected_doc = self.current_results[selected_index]
+
+        # Log the interaction for the query and document
+        query = self.query_entry.get().strip().lower()
+        doc_id = selected_doc["doc_id"]  # Unique identifier for the document
+        self.log_interaction(query, doc_id)
+
+        # Check if the file exists
+        file_path = selected_doc["path"]
+        if not os.path.exists(file_path):
+            messagebox.showerror("Error", f"The file does not exist: {file_path}")
+            return
+
+        # Read the file's content
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                content = file.read()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to read the file: {e}")
+            return
+
+        # Create a new popup window to display content
+        popup = tk.Toplevel(self.master)
+        popup.title(f"Viewing: {selected_doc['file_name']}")
+        popup.geometry("600x400")
+
+        # Add a scrollable Text widget to display file content
+        text_widget = tk.Text(popup, wrap=tk.WORD)
+        text_widget.insert("1.0", content)
+        text_widget.config(state=tk.DISABLED)  # Make content read-only
+        text_widget.pack(fill=tk.BOTH, expand=True)
+
+        # Add a scrollbar
+        scrollbar = tk.Scrollbar(popup, command=text_widget.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        text_widget.config(yscrollcommand=scrollbar.set)
+
+    def log_interaction(self, query, doc_id):
+        # Load interaction data (from memory or file)
+        try:
+            with open("interaction_data.json", "r") as f:
+                self.interaction_data = json.load(f)
+        except FileNotFoundError:
+            self.interaction_data = {}
+
+        # Update interaction data
+        if query not in self.interaction_data:
+            self.interaction_data[query] = {}
+        if doc_id not in self.interaction_data[query]:
+            self.interaction_data[query][doc_id] = {"views": 0, "score_boost": 0.0}
+
+        self.interaction_data[query][doc_id]["views"] += 1
+        self.interaction_data[query][doc_id]["score_boost"] += 0.1  # Increment boost
+
+        # Save interaction data back to file
+        with open("interaction_data.json", "w") as f:
+            json.dump(self.interaction_data, f)
 
 
 # Main Program
