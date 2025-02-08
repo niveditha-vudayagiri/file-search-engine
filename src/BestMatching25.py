@@ -4,7 +4,7 @@ from collections import Counter
 from TextPreprocessor import TextPreprocessor
 
 class BM25:
-    def __init__(self, tfidf_builder, k1=1.5, b=0.75):
+    def __init__(self, tfidf_builder, trec,k1=1.5, b=0.75 ):
         """
         Initialize the BM25 model.
         :param tfidf_builder: An instance of the TF_IDF_Builder class.
@@ -14,10 +14,12 @@ class BM25:
         self.tfidf_builder = tfidf_builder
         self.k1 = k1
         self.b = b
+
         self.avg_doc_length = 0
         self.doc_lengths = []
         self.doc_frequencies = Counter()
         self.total_documents = 0
+        self.trec = trec
 
     def load_documents(self, folder_path):
         """
@@ -71,17 +73,25 @@ class BM25:
         score = 0
         for term in query_terms:
             if term in self.doc_frequencies:
-                # BM25 components
-                df = self.doc_frequencies[term]
-                idf = math.log((self.total_documents - df + 0.5) / (df + 0.5) + 1)
-                tf = term_frequencies[term]
-                norm_tf = ((tf * (self.k1 + 1)) /
-                           (tf + self.k1 * (1 - self.b + self.b * (doc_length / self.avg_doc_length))))
-                score += idf * norm_tf
+                # **Step 1: Compute Robertson-Sparck Jones (RSJ) Weight (IDF)**
+                df = self.doc_frequencies[term]  # Document Frequency
+                idf = math.log((self.total_documents - df + 0.5) / (df + 0.5) + 1)  # RSJ Weight
+
+                # **Step 2: Compute Normalization Factor for TF Scaling**
+                tf = term_frequencies[term]  # Term Frequency in the document
+                norm_tf = (tf * (self.k1 + 1)) / (
+                    tf + self.k1 * (1 - self.b + self.b * (doc_length / self.avg_doc_length))
+                )
+
+                # **Step 3: Compute BM25 Weight**
+                bm25_weight = idf * norm_tf
+
+                # **Step 4: Compute Final Similarity Score**
+                score += bm25_weight
 
         return score
 
-    def search(self, query, page=1, results_per_page=12):
+    def search(self, query):
         """
         Search for the query in the document collection using BM25 scoring.
         Returns ranked results with filename, filepath, similarity score, and snippet.
@@ -89,8 +99,8 @@ class BM25:
         if not self.doc_lengths:
             raise ValueError("BM25 index not built. Load documents and build the index first.")
 
-        query = self.tfidf_builder.preprocessor.preprocess(query)
-        scores = [(idx, self.compute_bm25_score(query, idx))
+        processed_query = self.tfidf_builder.preprocessor.preprocess(query.query_name, True)
+        scores = [(idx, self.compute_bm25_score(processed_query, idx))
                   for idx in range(len(self.tfidf_builder.documents))]
         scores = sorted(scores, key=lambda x: x[1], reverse=True)
 
@@ -99,34 +109,22 @@ class BM25:
         for idx, score in scores:
             if score > 0:  # Include only documents with non-zero scores
                 doc = self.tfidf_builder.documents[idx]
-                snippet = self.generate_snippet(doc.original_text, query.split())
+                snippet = self.generate_snippet(doc.original_text, query.query_name.split())
                 all_results.append({
                     "doc_id": doc.doc_id,
                     "file_name": doc.file_name,
+                    "original_text": doc.original_text,
                     "path": doc.path,
                     "score": score,
                     "snippet": snippet,
                     "extension": doc.file_extension,
-                    "date": doc.date,
+                    "bibliography": doc.bibliography,
+                    "author": doc.author
                 })
 
-        # Pagination logic
-        total_results = len(all_results)
-        start_index = (page - 1) * results_per_page
-        end_index = start_index + results_per_page
+        self.trec.save_to_trec(query, all_results)
 
-        paginated_results = all_results[start_index:end_index]
-        has_next_page = end_index < total_results
-        has_previous_page = start_index > 0
-
-        return {
-            "results": paginated_results,
-            "total_results": total_results,
-            "current_page": page,
-            "has_next_page": has_next_page,
-            "has_previous_page": has_previous_page,
-            "results_per_page": results_per_page,
-        }
+        return all_results
 
     def generate_snippet(self, content, query_terms, snippet_length=30):
         """

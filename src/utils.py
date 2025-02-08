@@ -19,5 +19,18 @@ class IconLoadUtilities:
         # Resize the image
         img = img.resize((target_width, target_height), Image.LANCZOS)
         return ImageTk.PhotoImage(img)
+
+class TRECUtilities:
+    def __init__(self, output_path="output.trec"):
+        self.query = None
+        self.output_path = output_path
+        # Clear the file upon initialization
+        open(self.output_path, "w").close()
+
+    def save_to_trec(self, query, results):
+        with open(self.output_path, "a") as f:  # Append mode
+            for i, result in enumerate(results):
+                # query_id iter document_id rank similarity run_id
+                f.write(f"{query.query_id} Q0 {result['doc_id']} {i + 1} {result['score']} STANDARD\n")
     
         

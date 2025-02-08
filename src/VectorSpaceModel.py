@@ -1,10 +1,11 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from TextPreprocessor import TextPreprocessor
-import os
+from utils import TRECUtilities
+from Query import Query
 
 class VectorSpaceModel:
-    def __init__(self,tfidf_builder):
+    def __init__(self,tfidf_builder, trec):
         """
         Initialize the Vector Space Model.
         :param tfidf_builder: An instance of the TF_IDF_Builder class.
@@ -12,6 +13,7 @@ class VectorSpaceModel:
         self.preprocessor = TextPreprocessor()
         self.tfidf_builder = tfidf_builder
         self.tfidf_matrix = None
+        self.trec = trec
 
     def load_documents(self, folder_path):
         """
@@ -26,7 +28,7 @@ class VectorSpaceModel:
         self.tfidf_builder.build_index()
         self.tfidf_matrix = self.tfidf_builder.get_tfidf_matrix()
 
-    def search(self, query, page = 1, results_per_page= 12):
+    def search(self, query):
         """
         Search for the query in the document collection.
         Returns ranked results with filename, filepath, similarity score, and snippet.
@@ -34,7 +36,7 @@ class VectorSpaceModel:
         if self.tfidf_matrix is None:
             raise ValueError("TF-IDF index not built. Load documents and build the index first.")
         
-        processed_query = self.tfidf_builder.preprocessor.preprocess(query)
+        processed_query = self.tfidf_builder.preprocessor.preprocess(query.query_name, True)
         query_vector = self.tfidf_builder.vectorizer.transform([processed_query])
         similarities = cosine_similarity(query_vector, self.tfidf_matrix).flatten()
 
@@ -47,37 +49,22 @@ class VectorSpaceModel:
             if score > 0:  # Include only documents with non-zero similarity
                 # Match the index to the corresponding document
                 doc= self.tfidf_builder.documents[idx]
-                snippet = self.generate_snippet(doc.original_text, query.split())
+                snippet = self.generate_snippet(doc.original_text, query.query_name.split())
                 all_results.append({
                     "doc_id": doc.doc_id,
                     "file_name": doc.file_name,
                     "path": doc.path,
+                    "original_text": doc.original_text,
                     "score": similarities[idx],
                     "snippet": snippet,
                     "extension": doc.file_extension,
-                    "date": doc.date
+                    "bibliography": doc.bibliography,
+                    "author": doc.author
                 })
         
+        self.trec.save_to_trec(query, all_results)
         
-        # Pagination logic
-        total_results = len(all_results)
-        start_index = (page - 1) * results_per_page
-        end_index = start_index + results_per_page
-
-        paginated_results = all_results[start_index:end_index]
-        has_next_page = end_index < total_results
-        has_previous_page = start_index > 0
-
-        return {
-            "results": paginated_results,
-            "total_results": total_results,
-            "current_page": page,
-            "has_next_page": has_next_page,
-            "has_previous_page": has_previous_page,
-            "results_per_page": results_per_page
-        }
-        
-        return results
+        return all_results
 
     def generate_snippet(self, content, query_terms, snippet_length=30):
         """

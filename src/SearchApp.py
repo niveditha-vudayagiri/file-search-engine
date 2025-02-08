@@ -9,20 +9,24 @@ from SearchLogger import SearchLogger
 from utils import IconLoadUtilities
 import threading, asyncio
 from datetime import datetime
+import xml.etree.ElementTree as ET
+from Query import Query
+from utils import TRECUtilities
 
 class SearchApp:
     def __init__(self, master):
         self.master = master
         self.tf_idf= TF_IDF_Builder(TextPreprocessor())
-        self.vsm = VectorSpaceModel(self.tf_idf)
-        self.bm25 = BM25(self.tf_idf)
+        self.vsm = VectorSpaceModel(self.tf_idf, TRECUtilities( "vsm_results.trec"))
+        self.bm25 = BM25(self.tf_idf,TRECUtilities( "bm25_results.trec"))
         self.folder_path = None
         self.current_page = 1
-        self.query = ""
         self.txt_image = None
         self.utils = IconLoadUtilities(master)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.logger = SearchLogger(f"Search_log_{timestamp}.log")
+        self.queries = []
+        self.results = None
 
         # Start on Page 1
         self.page1()
@@ -132,50 +136,106 @@ class SearchApp:
         self.pagination_frame = tk.Frame(self.master)
         self.pagination_frame.pack(pady=10)
 
-        self.prev_button = tk.Button(self.pagination_frame, text="Previous", command=self.prev_page, state=tk.DISABLED)
+        self.prev_button = tk.Button(self.pagination_frame, text="Previous", command=self.prev_page_handler, state=tk.DISABLED)
         self.prev_button.pack(side=tk.LEFT, padx=5)
 
-        self.next_button = tk.Button(self.pagination_frame, text="Next", command=self.next_page, state=tk.DISABLED)
+        self.next_button = tk.Button(self.pagination_frame, text="Next", command=self.next_page_handler, state=tk.DISABLED)
         self.next_button.pack(side=tk.LEFT, padx=5)
 
-    async def search(self):
-        self.query = self.query_entry.get().strip()
-        self.logger.log_query(self.query)
+    def load_queries(self, file_path):
+        tree = ET.parse(file_path)
+        root = tree.getroot()
         
-        if not self.query:
-            messagebox.showwarning("Warning", "Please enter a query.")
-            return
+        for top in root.findall("top"):
+            query_id = top.find("num").text.strip()
+            query_text = top.find("title").text.strip()
+            query_obj = Query(query_id, query_text)
+            self.queries.append(query_obj)
+        
+        return self.queries
 
-        self.current_page = 1
-        vsm_results = self.vsm.search(self.query, page=self.current_page)
-        bm25_results = self.bm25.search(self.query, page= self.current_page)
+    async def search(self):
 
-        results = self.combine_results(vsm_results, bm25_results)
-        await self.display_results(results)
+        #Read queries from folder_path+"cran.qry.xml" and split to queries
+        self.queries = self.load_queries(self.folder_path+"/cran.qry.xml")
+        for query in self.queries:
+            self.query_entry.delete(0, tk.END)
+            self.query_entry.insert(0, query.query_name)
+            self.logger.log_query(query.query_name)
+
+            self.current_page = 1
+            vsm_results = self.vsm.search(query)
+            bm25_results = self.bm25.search(query)
+
+            self.results = self.combine_results(vsm_results, bm25_results)
+            curr_results = self.get_curr_results(self.current_page, 15)
+
+            query.add_result(curr_results)
+
+        #Only diplays the first query results
+        await self.display_results(self.queries[0].results)
 
     def combine_results(self, vsm_results, bm25_results):
         """
         Combines results from VSM and BM25 into a single list for display.
-        Assumes both VSM and BM25 return paginated results with the same structure.
+        Ensures documents are merged based on doc_id, adding both scores.
         """
-        combined_results = []
-        for vsm_result, bm25_result in zip(vsm_results["results"], bm25_results["results"]):
-            combined_results.append({
-                "doc_id": vsm_result["doc_id"],
+        combined_dict = {}
+
+        # Add VSM results
+        for vsm_result in vsm_results:
+            doc_id = vsm_result["doc_id"]
+            combined_dict[doc_id] = {
+                "doc_id": doc_id,
                 "file_name": vsm_result["file_name"],
                 "path": vsm_result["path"],
+                "original_text": vsm_result["original_text"],
                 "extension": vsm_result["extension"],
-                "date": vsm_result["date"],
                 "vsm_score": vsm_result["score"],
-                "bm25_score": bm25_result["score"],
-                "snippet": vsm_result["snippet"],  # Assuming snippets are the same
-            })
+                "bm25_score": 0,  # Default score if not in BM25 results
+                "snippet": vsm_result["snippet"],
+                "bibliography": vsm_result["bibliography"],
+                "author": vsm_result["author"]
+            }
+
+        # Merge BM25 results
+        for bm25_result in bm25_results:
+            doc_id = bm25_result["doc_id"]
+            if doc_id in combined_dict:
+                combined_dict[doc_id]["bm25_score"] = bm25_result["score"]
+            else:
+                combined_dict[doc_id] = {
+                    "doc_id": doc_id,
+                    "file_name": bm25_result["file_name"],
+                    "path": bm25_result["path"],
+                    "original_text": bm25_result["original_text"],
+                    "extension": bm25_result["extension"],
+                    "vsm_score": 0,  # Default score if not in VSM results
+                    "bm25_score": bm25_result["score"],
+                    "snippet": bm25_result["snippet"],
+                    "bibliography": bm25_result["bibliography"],
+                    "author": bm25_result["author"]
+                }
+
+        return list(combined_dict.values())
+        
+    
+    def get_curr_results(self, page, results_per_page):
+        # Pagination logic
+        total_results = len(self.results)
+        start_index = (page - 1) * results_per_page
+        end_index = start_index + results_per_page
+
+        paginated_results = self.results[start_index:end_index]
+        has_next_page = end_index < total_results
+        has_previous_page = start_index > 0
 
         return {
-            "results": combined_results,
-            "has_previous_page": vsm_results["has_previous_page"],
-            "has_next_page": vsm_results["has_next_page"]
+            "results": paginated_results,
+            "has_previous_page": has_previous_page,
+            "has_next_page": has_next_page
         }
+        
 
     def load_icons_in_background(self, results, font_height):
         # Load the icon once (or as needed for different file types)
@@ -196,21 +256,12 @@ class SearchApp:
         self.snippet_text.config(state=tk.NORMAL)
         self.snippet_text.delete("1.0", tk.END)
         self.snippet_text.config(state=tk.DISABLED)
-
-        # Assuming `txt_icon` is loaded earlier in the class or method
-        font_height = 20 # Approximate font height (adjust based on your GUI)
         
         # Add results to the Treeview without icons initially
-        self.current_results = results["results"]  # Store results for details view
-        for i, result in enumerate(results["results"]):
+        self.current_results = results["results"] # Store results for details view
+        for i, result in enumerate(self.current_results):
             self.results_tree.insert("", tk.END, iid=i, text="", 
             values=(result["file_name"], f"VSM: {result['vsm_score']:.2f}, BM25: {result['bm25_score']:.2f}"))
-
-        # Load icons
-        #self.load_icons_in_background(results, font_height)
-        thread = threading.Thread(target=self.load_icons_in_background, args=(results, font_height))
-        thread.daemon = True  # Ensures the thread exits when the main program does
-        thread.start()
     
         # Update pagination buttons
         self.prev_button.config(state=tk.NORMAL if results["has_previous_page"] else tk.DISABLED)
@@ -229,9 +280,8 @@ class SearchApp:
         # Display metadata
         metadata_text = (
             f"Filename: {selected_doc['file_name']}\n"
-            f"Path: {selected_doc['path']}\n"
-            f"File Type: {selected_doc['extension']}\n"
-            f"Date: {selected_doc['date']}\n"
+            f"Author: {selected_doc['author']}\n"
+            f"Bibliography: {selected_doc['bibliography']}\n"
             f"VSM Score: {selected_doc['vsm_score']:.2f}\n"
             f"BM25 Score: {selected_doc['bm25_score']:.2f}"
         )
@@ -244,7 +294,7 @@ class SearchApp:
         self.snippet_text.insert(tk.END, snippet)
 
         # Highlight search term
-        start_idx = "1.0"
+        """start_idx = "1.0"
         while True:
             start_idx = self.snippet_text.search(self.query, start_idx, stopindex=tk.END, nocase=True)
             if not start_idx:
@@ -254,18 +304,24 @@ class SearchApp:
             start_idx = end_idx
 
         self.snippet_text.tag_config("highlight", background="yellow", foreground="black")
-        self.snippet_text.config(state=tk.DISABLED)
+        self.snippet_text.config(state=tk.DISABLED)"""
+
+    def prev_page_handler(self):
+        asyncio.run(self.prev_page())
 
     async def prev_page(self):
         if self.current_page > 1:
             self.current_page -= 1
-            results = self.vsm.search(self.query, page=self.current_page)
-            await self.display_results(results)
+            curr_results = self.get_curr_results(self.current_page, 15)
+            await self.display_results(curr_results)
+
+    def next_page_handler(self):
+        asyncio.run(self.next_page())
 
     async def next_page(self):
         self.current_page += 1
-        results = self.vsm.search(self.query, page=self.current_page)
-        await self.display_results(results)
+        curr_results = self.get_curr_results(self.current_page, 15)
+        await self.display_results(curr_results)
 
     def search_button_handler(self):
         asyncio.run(self.search())
@@ -291,16 +347,7 @@ class SearchApp:
         if not os.path.exists(file_path):
             messagebox.showerror("Error", f"The file does not exist: {file_path}")
             return
-
-        # Read the file's content
-        try:
-            with open(file_path, "r", encoding="utf-8") as file:
-                content = file.read()
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to read the file: {e}")
-            return
         
-
          # Log the document opening
         self.logger.log_click(self.query, selected_doc["doc_id"], selected_doc["file_name"])
 
@@ -314,7 +361,7 @@ class SearchApp:
 
         # Add a scrollable Text widget to display file content
         text_widget = tk.Text(popup, wrap=tk.WORD)
-        text_widget.insert("1.0", content)
+        text_widget.insert("1.0", selected_doc["original_text"])
         text_widget.config(state=tk.DISABLED)  # Make content read-only
         text_widget.pack(fill=tk.BOTH, expand=True)
 
