@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk, PhotoImage
 from VectorSpaceModel import VectorSpaceModel
 from BestMatching25 import BM25
+from LanguageModel import MultinomialLanguageModel
 from TextPreprocessor import TextPreprocessor
 from TF_IDF_Builder import TF_IDF_Builder
 from SearchLogger import SearchLogger
@@ -12,12 +13,14 @@ from datetime import datetime
 import xml.etree.ElementTree as ET
 from Query import Query
 from utils import TRECUtilities
+import numpy as np
 
 class SearchApp:
     def __init__(self, master):
         self.master = master
         self.tf_idf= TF_IDF_Builder(TextPreprocessor())
         self.vsm = VectorSpaceModel(self.tf_idf, TRECUtilities( "vsm_results.trec"))
+        self.lm = MultinomialLanguageModel(self.tf_idf,TRECUtilities( "lm_results.trec"))
         self.bm25 = BM25(self.tf_idf,TRECUtilities( "bm25_results.trec"))
         self.folder_path = None
         self.current_page = 1
@@ -27,6 +30,8 @@ class SearchApp:
         self.logger = SearchLogger(f"Search_log_{timestamp}.log")
         self.queries = []
         self.results = None
+
+        self.documents = []
 
         # Start on Page 1
         self.page1()
@@ -62,13 +67,17 @@ class SearchApp:
             return
 
         try:
-            #Build VSM Index
-            self.vsm.load_documents(self.folder_path)
-            self.vsm.build_index()
+           
+            self.documents = self.tf_idf.load_documents(self.folder_path)
+
+             #Build VSM Index
+            self.vsm.build_index(self.documents)
 
             #Build BM25 Index
-            self.bm25.load_documents(self.folder_path)
-            self.bm25.build_index()
+            self.bm25.build_index(self.documents)
+
+            #Build LM Index
+            self.lm.build_index(self.documents)
 
             messagebox.showinfo("Success", "Index built successfully!")
             self.page2()
@@ -84,7 +93,10 @@ class SearchApp:
         self.query_entry = tk.Entry(self.master, width=50)
         self.query_entry.pack()
 
-        search_button = tk.Button(self.master, text="Search", command=self.search_button_handler)
+        search_button = tk.Button(self.master, text="Search", command=self.search_query_button_handler)
+        search_button.pack(pady=10)
+
+        search_button = tk.Button(self.master, text="Search from TREC queries", command=self.search_button_handler)
         search_button.pack(pady=10)
 
         # Results section split into two frames
@@ -153,29 +165,27 @@ class SearchApp:
             self.queries.append(query_obj)
         
         return self.queries
+    
+    async def search_query(self,query):
+        self.current_page = 1
+        vsm_results = self.vsm.search(query)
+        bm25_results = self.bm25.search(query)
+        lm_results = self.lm.search(query)
+
+        self.results = self.combine_results(vsm_results, bm25_results, lm_results)
+        curr_results = self.get_curr_results(self.current_page, 15)
+
+        query.add_result(curr_results)
+        await self.display_results(query.results)
 
     async def search(self):
 
         #Read queries from folder_path+"cran.qry.xml" and split to queries
         self.queries = self.load_queries(self.folder_path+"/cran.qry.xml")
         for query in self.queries:
-            self.query_entry.delete(0, tk.END)
-            self.query_entry.insert(0, query.query_name)
-            self.logger.log_query(query.query_name)
+            await self.search_query(query)
 
-            self.current_page = 1
-            vsm_results = self.vsm.search(query)
-            bm25_results = self.bm25.search(query)
-
-            self.results = self.combine_results(vsm_results, bm25_results)
-            curr_results = self.get_curr_results(self.current_page, 15)
-
-            query.add_result(curr_results)
-
-        #Only diplays the first query results
-        await self.display_results(self.queries[0].results)
-
-    def combine_results(self, vsm_results, bm25_results):
+    def combine_results(self, vsm_results, bm25_results, lm_results):
         """
         Combines results from VSM and BM25 into a single list for display.
         Ensures documents are merged based on doc_id, adding both scores.
@@ -193,6 +203,7 @@ class SearchApp:
                 "extension": vsm_result["extension"],
                 "vsm_score": vsm_result["score"],
                 "bm25_score": 0,  # Default score if not in BM25 results
+                "lm_score": 0,
                 "snippet": vsm_result["snippet"],
                 "bibliography": vsm_result["bibliography"],
                 "author": vsm_result["author"]
@@ -212,11 +223,31 @@ class SearchApp:
                     "extension": bm25_result["extension"],
                     "vsm_score": 0,  # Default score if not in VSM results
                     "bm25_score": bm25_result["score"],
+                    "lm_score": 0,
                     "snippet": bm25_result["snippet"],
                     "bibliography": bm25_result["bibliography"],
                     "author": bm25_result["author"]
                 }
 
+        # Merge LM results
+        for lm_result in lm_results:
+            doc_id = lm_result["doc_id"]
+            if doc_id in combined_dict:
+                combined_dict[doc_id]["lm_score"] = lm_result["score"]
+            else:
+                combined_dict[doc_id] = {
+                    "doc_id": doc_id,
+                    "file_name": lm_result["file_name"],
+                    "path": lm_result["path"],
+                    "original_text": lm_result["original_text"],
+                    "extension": lm_result["extension"],
+                    "vsm_score": 0,  # Default score if not in VSM results
+                    "bm25_score": 0,
+                    "lm_score": lm_result["score"],
+                    "snippet": lm_result["snippet"],
+                    "bibliography": lm_result["bibliography"],
+                    "author": lm_result["author"]
+                }
         return list(combined_dict.values())
         
     
@@ -231,7 +262,8 @@ class SearchApp:
         has_previous_page = start_index > 0
 
         return {
-            "results": paginated_results,
+            "results": self.results,
+            "paginated_results" : paginated_results,
             "has_previous_page": has_previous_page,
             "has_next_page": has_next_page
         }
@@ -258,10 +290,13 @@ class SearchApp:
         self.snippet_text.config(state=tk.DISABLED)
         
         # Add results to the Treeview without icons initially
-        self.current_results = results["results"] # Store results for details view
+        self.current_results = results["paginated_results"] # Store results for details view
         for i, result in enumerate(self.current_results):
             self.results_tree.insert("", tk.END, iid=i, text="", 
-            values=(result["file_name"], f"VSM: {result['vsm_score']:.2f}, BM25: {result['bm25_score']:.2f}"))
+            values=(
+                result["file_name"], 
+                f"VSM: {result['vsm_score']:.2f}, BM25: {result['bm25_score']:.2f}, LM: {result['lm_score']:.2f}"
+            ))
     
         # Update pagination buttons
         self.prev_button.config(state=tk.NORMAL if results["has_previous_page"] else tk.DISABLED)
@@ -279,11 +314,12 @@ class SearchApp:
 
         # Display metadata
         metadata_text = (
-            f"Filename: {selected_doc['file_name']}\n"
+            f"Title: {selected_doc['file_name']}\n"
             f"Author: {selected_doc['author']}\n"
             f"Bibliography: {selected_doc['bibliography']}\n"
             f"VSM Score: {selected_doc['vsm_score']:.2f}\n"
-            f"BM25 Score: {selected_doc['bm25_score']:.2f}"
+            f"BM25 Score: {selected_doc['bm25_score']:.2f}\n"
+            f"Language Model Score: {selected_doc['lm_score']:.2f}"
         )
         self.metadata_label.config(text=metadata_text)
 
@@ -322,6 +358,9 @@ class SearchApp:
         self.current_page += 1
         curr_results = self.get_curr_results(self.current_page, 15)
         await self.display_results(curr_results)
+
+    def search_query_button_handler(self):
+        asyncio.run(self.search_query(self.query_entry.get().strip().lower()))  
 
     def search_button_handler(self):
         asyncio.run(self.search())

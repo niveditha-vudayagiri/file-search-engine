@@ -1,8 +1,8 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from TextPreprocessor import TextPreprocessor
-from utils import TRECUtilities
-from Query import Query
+import numpy as np
+from sklearn.decomposition import TruncatedSVD
+from nltk.tokenize import word_tokenize
 
 class VectorSpaceModel:
     def __init__(self,tfidf_builder, trec):
@@ -10,23 +10,60 @@ class VectorSpaceModel:
         Initialize the Vector Space Model.
         :param tfidf_builder: An instance of the TF_IDF_Builder class.
         """
-        self.preprocessor = TextPreprocessor()
+        self.preprocessor = tfidf_builder.preprocessor
         self.tfidf_builder = tfidf_builder
         self.tfidf_matrix = None
         self.trec = trec
+        self.svd = TruncatedSVD(n_components=100)  # LSA component
+        self.evsm_matrix = None
+        self.lsa_matrix = None
+        self.tdw = None
 
-    def load_documents(self, folder_path):
-        """
-        Load documents using the TF_IDF_Builder.
-        """
-        return self.tfidf_builder.load_documents(folder_path)
 
-    def build_index(self):
+    def compute_tdw(self):
+        """Compute Term Discrimination Weight (TDW)"""
+        term_variances = np.var(self.tfidf_matrix.toarray(), axis=0)
+        self.tdw = np.sqrt(term_variances)  # TDW is based on variance
+
+    def apply_evsm_weights(self):
+        """Modify TF-IDF weights using EVSM adjustments"""
+        self.evsm_matrix = self.tfidf_matrix.multiply(self.tdw)
+
+    def get_evsm_matrix(self):
+        return self.evsm_matrix
+    
+    def apply_lsa(self):
+        """Apply LSA on EVSM-adjusted TF-IDF."""
+        self.lsa_matrix = self.svd.fit_transform(self.evsm_matrix)
+
+    def build_index(self, documents):
         """
         Build the TF-IDF index using the TF_IDF_Builder.
         """
+        if not documents:
+            raise ValueError("No documents loaded. Use `load_documents()` first.")
+        for doc in documents:
+            doc.preprocessed_text = self.preprocess_vsm(doc.original_text, False)
+
         self.tfidf_builder.build_index()
         self.tfidf_matrix = self.tfidf_builder.get_tfidf_matrix()
+        self.compute_tdw()
+        self.apply_evsm_weights()
+        self.apply_lsa()
+
+    def preprocess_vsm(self, text, isQuery=False):
+        tokens = word_tokenize(text.lower())
+        tokens = [word for word in tokens if word.isalnum() and word not in self.preprocessor.stop_words]
+        
+        tokens = [self.preprocessor.lemmatizer.lemmatize(word) for word in tokens]  # Prefer lemmatization
+        if isQuery:
+            tokens.extend([self.preprocessor.synonym_expansion(word) for word in tokens])  # Synonyms
+
+        tokens.extend(self.preprocessor.extract_named_entities(text))  
+        tokens.extend(self.preprocessor.generate_ngrams(text, 2))  # Bigrams
+        tokens.extend(self.preprocessor.generate_ngrams(text, 3))  # Trigrams
+
+        return " ".join(tokens)
 
     def search(self, query):
         """
@@ -36,9 +73,9 @@ class VectorSpaceModel:
         if self.tfidf_matrix is None:
             raise ValueError("TF-IDF index not built. Load documents and build the index first.")
         
-        processed_query = self.tfidf_builder.preprocessor.preprocess(query.query_name, True)
-        query_vector = self.tfidf_builder.vectorizer.transform([processed_query])
-        similarities = cosine_similarity(query_vector, self.tfidf_matrix).flatten()
+        processed_query = self.preprocess_vsm(query.query_name, True)
+        query_vector = self.transform_query(processed_query)
+        similarities = cosine_similarity(query_vector, self.lsa_matrix).flatten()
 
         # Rank documents by similarity scores
         ranked_indices = similarities.argsort()[::-1]
@@ -87,3 +124,10 @@ class VectorSpaceModel:
         
         snippet = " ".join(tokens[start_index:end_index])
         return snippet + "..." if end_index < len(tokens) else snippet
+
+    def transform_query(self, query):
+        """Transform a query using the same pipeline (TF-IDF → EVSM → LSA)."""
+        query_tfidf = self.tfidf_builder.get_query_vector(query)
+        query_evsm = query_tfidf.multiply(self.tdw)
+        query_lsa = self.svd.transform(query_evsm)
+        return query_lsa

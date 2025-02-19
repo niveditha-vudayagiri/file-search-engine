@@ -4,6 +4,7 @@ import os
 import hashlib
 import xml.etree.ElementTree as ET
 
+
 class TF_IDF_Builder:
     def __init__(self, preprocessor):
         """
@@ -11,14 +12,12 @@ class TF_IDF_Builder:
         :param preprocessor: Preprocessing object to clean and preprocess text.
         """
         self.preprocessor = preprocessor
-        self.vectorizer = TfidfVectorizer()
+        self.vectorizer = TfidfVectorizer(lowercase=True, stop_words="english", use_idf=True)
         self.documents = []
         self.tfidf_matrix = None
 
     def generate_doc_id(self,filename):
         return hashlib.md5(filename.encode()).hexdigest()
-
-    import xml.etree.ElementTree as ET
 
     def load_cranfield_xml(self,filepath):
         documents = []
@@ -66,19 +65,20 @@ class TF_IDF_Builder:
         for idx, file in enumerate(os.listdir(folder_path)):
             file_path = os.path.join(folder_path, file)
             # Check if the file is a .txt file and if it exists
-            if os.path.isfile(file_path) and file.endswith(".txt"):
+            """if os.path.isfile(file_path) and file.endswith(".txt"):
                 with open(file_path, "r", encoding="utf-8") as f:
                     text = f.read()
                     preprocessed_text = self.preprocessor.preprocess(text)
                     file_extension = os.path.splitext(file)[1]  # Get the file extension
                     doc_id = self.generate_doc_id(file)
                     document = Document(doc_id,file, file_path, text, preprocessed_text, file_extension)
-                    self.documents.append(document)
+                    self.documents.append(document)"""
             # Or read and parse a Cranfield collection in TREC XML format
-            elif os.path.isfile(file_path) and file.startswith("cran.all"):
+            if os.path.isfile(file_path) and file.startswith("cran.all"):
                 documents = self.load_cranfield_xml(file_path)
                 for doc in documents:
-                    preprocessed_text = self.preprocessor.preprocess(doc["text"])
+                    #preprocessed_text = self.preprocessor.preprocess(doc["text"])
+                    preprocessed_text = doc["text"]
                     document = Document(doc["doc_id"], doc["file_name"], file_path, doc["text"], preprocessed_text, ".xml",
                                         author=doc["author"], bibliography=doc["bibliography"])
                     self.documents.append(document)
@@ -90,12 +90,19 @@ class TF_IDF_Builder:
     def build_index(self):
         """
         Build the TF-IDF index for the loaded documents.
+        Complete pipeline: TF-IDF → EVSM → LSA
         """
         if not self.documents:
             raise ValueError("No documents loaded. Use `load_documents()` first.")
         
         preprocessed_texts = [doc.preprocessed_text for doc in self.documents]
         self.tfidf_matrix = self.vectorizer.fit_transform(preprocessed_texts)
+        
+    def get_query_vector(self, query):
+        """
+        Transform the query into a TF-IDF vector using the fitted vectorizer.
+        """
+        return self.vectorizer.transform([query])
 
     def get_tfidf_matrix(self):
         """

@@ -3,6 +3,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 import spacy
+from nltk.util import ngrams
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -53,12 +54,19 @@ class TextPreprocessor:
         doc = nlp(text)
         entities = [ent.text for ent in doc.ents]
         return entities
+
+
+    def generate_ngrams(self,text, n=2):
+        tokens = text.split()
+        return [" ".join(gram) for gram in ngrams(tokens, n)]
     
     def preprocess(self, text,isQuery=False):
         # Tokenize
         tokens = word_tokenize(text.lower())
         # Remove punctuation and stopwords
         tokens = [word for word in tokens if word.isalnum() and word not in self.stop_words]
+        processed_tokens = tokens.copy()
+
         # Stemming
         tokens = [self.stemmer.stem(word) for word in tokens]
         # Lemmatization
@@ -70,5 +78,8 @@ class TextPreprocessor:
         
         # Named Entity Recognition
         tokens.extend(self.extract_named_entities(text))
+
+        tokens.extend(self.generate_ngrams(processed_tokens, 2))  # Bigrams
+        tokens.extend(self.generate_ngrams(processed_tokens, 3)) # Trigrams
 
         return " ".join(tokens)
