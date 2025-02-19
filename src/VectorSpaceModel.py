@@ -14,7 +14,7 @@ class VectorSpaceModel:
         self.tfidf_builder = tfidf_builder
         self.tfidf_matrix = None
         self.trec = trec
-        self.svd = TruncatedSVD(n_components=100)  # LSA component
+        self.svd = TruncatedSVD(n_components=300)  # LSA component
         self.evsm_matrix = None
         self.lsa_matrix = None
         self.tdw = None
