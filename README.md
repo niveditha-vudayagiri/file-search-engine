@@ -30,7 +30,9 @@ After index is built, navigated to next page which allows to enter user query or
 
 4. Evaluating Retrieval Performance
 
-Copy the result files to trec_eval-main and run it
+Copy the result files to trec_eval-main and run below file
+
+finaltest.sh
 
 # Results & Observations
 - BM25 outperforms other models in ranking effectiveness due to term frequency saturation and document length normalization.
