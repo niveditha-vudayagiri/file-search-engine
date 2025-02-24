@@ -3,6 +3,7 @@ import math
 from collections import Counter
 from rank_bm25 import BM25Okapi
 from nltk.tokenize import word_tokenize
+import copy
 
 class BM25:
     def __init__(self, tfidf_builder, trec,k1=1.5, b=0.75 ):
@@ -14,9 +15,11 @@ class BM25:
         """
         self.preprocessor = tfidf_builder.preprocessor
         self.tfidf_builder = tfidf_builder
+
         self.k1 = k1
         self.b = b
 
+        self.documents = []
         self.avg_doc_length = 0
         self.doc_lengths = []
         self.doc_frequencies = Counter()
@@ -30,80 +33,35 @@ class BM25:
         if not documents:
             raise ValueError("No documents loaded. Use `load_documents()` first.")
 
-        for doc in documents:
-            doc.preprocessed_text = self.preprocess_bm25(doc.original_text, False)
+        self.documents = copy.deepcopy(documents.copy())
 
-        self.tokenized_corpus = [doc.preprocessed_text.split() for doc in documents]
+        for doc in self.documents:
+            doc.preprocessed_text = self.preprocess_bm25(doc)
+
+        self.tokenized_corpus = [doc.preprocessed_text.split() for doc in self.documents]
         self.bm25 = BM25Okapi(self.tokenized_corpus)  # Efficient BM25 indexing
-
-        """self.total_documents = len(self.tfidf_builder.documents)
-        self.doc_lengths = [len(doc.preprocessed_text.split()) for doc in self.tfidf_builder.documents]
-        self.avg_doc_length = sum(self.doc_lengths) / self.total_documents
-
-        # Calculate document frequencies for terms
-        for doc in self.tfidf_builder.documents:
-            unique_terms = set(doc.preprocessed_text.split())
-            for term in unique_terms:
-                self.doc_frequencies[term] += 1"""
-
-    """def compute_bm25_score(self, query, doc_idx):
-        
-        Compute the BM25 score for a given query and document index.
-        :param query: The query string.
-        :param doc_idx: Index of the document in the loaded documents list.
-        :return: BM25 score for the document.
-        
-        query_terms = query.split()
-        doc = self.tfidf_builder.documents[doc_idx]
-        doc_length = self.doc_lengths[doc_idx]
-        term_frequencies = Counter(doc.preprocessed_text.split())
-
-        # Load interaction data
-        try:
-            with open("interaction_data.json", "r") as f:
-                self.interaction_data = json.load(f)
-        except FileNotFoundError:
-            self.interaction_data = {}
-
-        # Adjust BM25 parameters if relevant documents exist for the query
-        if query in self.interaction_data:
-            total_views = sum(doc["views"] for doc in self.interaction_data[query].values())
-            if total_views > 0:
-                self.b += 0.05 * (total_views / 10)  # Increase b based on total interactions
-                self.k1 -= 0.05 * (total_views / 10)  # Decrease k1 based on interactions
-
-        score = 0
-        for term in query_terms:
-            if term in self.doc_frequencies:
-                # **Step 1: Compute Robertson-Sparck Jones (RSJ) Weight (IDF)**
-                df = self.doc_frequencies[term]  # Document Frequency
-                idf = math.log((self.total_documents - df + 0.5) / (df + 0.5) + 1)  # RSJ Weight
-
-                # **Step 2: Compute Normalization Factor for TF Scaling**
-                tf = term_frequencies[term]  # Term Frequency in the document
-                norm_tf = (tf * (self.k1 + 1)) / (
-                    tf + self.k1 * (1 - self.b + self.b * (doc_length / self.avg_doc_length))
-                )
-
-                # **Step 3: Compute BM25 Weight**
-                bm25_weight = idf * norm_tf
-
-                # **Step 4: Compute Final Similarity Score**
-                score += bm25_weight
-
-        return score"""
     
-    def preprocess_bm25(self, text, isQuery=False):
+    def preprocess_bm25(self, doc):
+        text = doc.original_text
+
         tokens = word_tokenize(text.lower())
         tokens = [word for word in tokens if word.isalnum()]  # Keep stopwords
         tokens = [self.preprocessor.lemmatizer.lemmatize(word) for word in tokens]  # Optional, keeps word forms
 
-        if isQuery:
-            tokens.extend([self.preprocessor.synonym_expansion(word) for word in tokens])  # Can improve query recall
-
         tokens.extend(self.preprocessor.extract_named_entities(text))  
 
         return " ".join(tokens)
+    
+    def preprocess_query(self, text):
+
+        tokens = word_tokenize(text.lower())
+        tokens = [word for word in tokens if word.isalnum()]  # Keep stopwords
+        tokens = [self.preprocessor.lemmatizer.lemmatize(word) for word in tokens]  # Optional, keeps word forms
+
+        tokens.extend([self.preprocessor.synonym_expansion(word) for word in tokens])  # Can improve query recall
+
+        return " ".join(tokens)
+      
 
     def search(self, query):
         """
@@ -113,21 +71,17 @@ class BM25:
         if not self.bm25:
             raise ValueError("BM25 index not built. Load documents and build the index first.")
 
-        processed_query = self.preprocess_bm25(query.query_name, True)
+        processed_query = self.preprocess_query(query.query_name)
         query_terms = processed_query.split()
 
         scores = self.bm25.get_scores(query_terms)
         ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
 
-        """scores = [(idx, self.compute_bm25_score(processed_query, idx))
-                  for idx in range(len(self.tfidf_builder.documents))]
-        scores = sorted(scores, key=lambda x: x[1], reverse=True)"""
-
         # Collect results with pagination
         all_results = []
         for idx in ranked_indices:
             if scores[idx] > 0:  # Include only documents with non-zero scores
-                doc = self.tfidf_builder.documents[idx]
+                doc = self.documents[idx]
                 snippet = self.generate_snippet(doc.original_text, query.query_name.split())
                 all_results.append({
                     "doc_id": doc.doc_id,

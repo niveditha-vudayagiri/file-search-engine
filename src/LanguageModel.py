@@ -2,6 +2,7 @@ import math
 from collections import Counter
 from nltk.tokenize import word_tokenize
 from TextPreprocessor import TextPreprocessor
+import copy
 
 class MultinomialLanguageModel:
     def __init__(self, tfidf_builder, trec, mu=2000, lambda_unk=0.0001):
@@ -13,9 +14,11 @@ class MultinomialLanguageModel:
         """
         self.preprocessor = tfidf_builder.preprocessor
         self.tfidf_builder = tfidf_builder
+
         self.trec = trec
         self.mu = mu
         self.lambda_unk = lambda_unk  # Smoothing for unknown words
+        self.documents = []
 
         self.total_terms = 0
         self.term_frequencies = Counter()
@@ -24,6 +27,25 @@ class MultinomialLanguageModel:
         self.collection_probability = {}  # P(w|C)
         self.probabilities = {}  # Map of word probabilities
 
+    def preprocess_lm(self, doc):
+        text = doc.original_text
+
+        tokens = word_tokenize(text.lower())
+        tokens = [word for word in tokens if word.isalnum()]  # Keep stopwords  
+        tokens = [self.preprocessor.lemmatizer.lemmatize(word) for word in tokens]  # Preserve word forms  
+
+        tokens.extend(self.preprocessor.extract_named_entities(text))  # Keep named entities for context  
+
+        return " ".join(tokens)
+    
+    def preprocess_query(self, text):
+        
+        tokens = word_tokenize(text.lower())
+        tokens = [word for word in tokens if word.isalnum()]  # Keep stopwords  
+        tokens = [self.preprocessor.lemmatizer.lemmatize(word) for word in tokens]  # Preserve word forms  
+        
+        return " ".join(tokens)
+
     def build_index(self, documents):
         """
         Build the Language Model index by computing document term frequencies and collection probabilities.
@@ -31,11 +53,15 @@ class MultinomialLanguageModel:
         if not documents:
             raise ValueError("No documents loaded. Use `load_documents()` first.")
 
-        self.total_terms = sum(len(doc.preprocessed_text.split()) for doc in documents)
-        self.doc_lengths = [len(doc.preprocessed_text.split()) for doc in documents]
+        self.documents = copy.deepcopy(documents)
+        for doc in self.documents:
+            doc.preprocessed_text = self.preprocess_lm(doc)
+
+        self.total_terms = sum(len(doc.preprocessed_text.split()) for doc in self.documents)
+        self.doc_lengths = [len(doc.preprocessed_text.split()) for doc in self.documents]
 
         # Initialize the document frequencies
-        for doc in documents:
+        for doc in self.documents:
             self.doc_frequencies[doc.doc_id] = Counter()  # Initialize empty Counter for each document
             tokens = doc.preprocessed_text.split()
             for term in tokens:
@@ -82,14 +108,15 @@ class MultinomialLanguageModel:
         if not self.probabilities:
             raise ValueError("Language Model index not built. Load documents and build the index first.")
 
-        entropy, coverage = self.compute_lm_entropy_and_coverage(query.query_name)
+        processed_query = self.preprocess_query(query.query_name)
+        entropy, coverage = self.compute_lm_entropy_and_coverage(processed_query)
 
-        scores = [(idx, self.compute_lm_score(query.query_name, idx)) for idx in range(len(self.tfidf_builder.documents))]
+        scores = [(idx, self.compute_lm_score(processed_query, idx)) for idx in range(len(self.tfidf_builder.documents))]
         scores = sorted(scores, key=lambda x: x[1], reverse=True)
 
         all_results = []
         for idx, score in scores:
-            doc = self.tfidf_builder.documents[idx]
+            doc = self.documents[idx]
             snippet = self.generate_snippet(doc.original_text, query.query_name.split())
             all_results.append({
                 "doc_id": doc.doc_id,
@@ -114,7 +141,7 @@ class MultinomialLanguageModel:
         score = 0
 
         for term in query_terms:
-            doc_id = self.tfidf_builder.documents[doc_idx].doc_id
+            doc_id = self.documents[doc_idx].doc_id
             doc_term_freq = self.doc_frequencies.get(doc_id).get(term, 0)  # Use the updated doc_frequencies
             unk = self.lambda_unk / len(self.probabilities)
             collection_prob = self.collection_probability.get(term, unk)

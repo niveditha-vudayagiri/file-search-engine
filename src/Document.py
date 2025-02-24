@@ -11,4 +11,4 @@ class Document:
         self.file_extension = file_extension
         self.author = author
         self.bibliography = bibliography
-             
+        self.sentences = []

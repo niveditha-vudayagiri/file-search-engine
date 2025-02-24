@@ -3,7 +3,7 @@ from Document import Document
 import os
 import hashlib
 import xml.etree.ElementTree as ET
-
+import numpy as np
 
 class TF_IDF_Builder:
     def __init__(self, preprocessor):
@@ -78,6 +78,7 @@ class TF_IDF_Builder:
                 documents = self.load_cranfield_xml(file_path)
                 for doc in documents:
                     #preprocessed_text = self.preprocessor.preprocess(doc["text"])
+                    #combine text, title, author, and bib and store in preprocessed_text
                     preprocessed_text = doc["text"]
                     document = Document(doc["doc_id"], doc["file_name"], file_path, doc["text"], preprocessed_text, ".xml",
                                         author=doc["author"], bibliography=doc["bibliography"])
@@ -87,7 +88,7 @@ class TF_IDF_Builder:
             raise ValueError("No .txt files found in the specified folder.")
         return self.documents
 
-    def build_index(self):
+    def build_index(self, documents):
         """
         Build the TF-IDF index for the loaded documents.
         Complete pipeline: TF-IDF → EVSM → LSA
@@ -95,8 +96,20 @@ class TF_IDF_Builder:
         if not self.documents:
             raise ValueError("No documents loaded. Use `load_documents()` first.")
         
-        preprocessed_texts = [doc.preprocessed_text for doc in self.documents]
+        """preprocessed_texts = [doc.preprocessed_text for doc in documents]
         self.tfidf_matrix = self.vectorizer.fit_transform(preprocessed_texts)
+
+        """
+        self.sentences = []  # Store sentence-level documents
+        self.doc_mapping = []  # Track which sentence belongs to which document
+
+        for doc_id, doc in enumerate(documents):
+            self.sentences.extend(doc.sentences)  # Flatten the list of sentences
+            self.doc_mapping.extend([doc_id] * len(doc.sentences))  # Map sentences to document IDs
+        
+        # Compute TF-IDF at sentence level
+        self.tfidf_matrix = self.vectorizer.fit_transform(self.sentences)
+
         
     def get_query_vector(self, query):
         """
