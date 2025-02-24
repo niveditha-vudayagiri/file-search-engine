@@ -29,7 +29,7 @@ class TRECUtilities:
 
     def save_to_trec(self, query, results):
         with open(self.output_path, "a") as f:  # Append mode
-            for i, result in enumerate(results):
+            for i, result in enumerate(results[:100]):
                 # query_id iter document_id rank similarity run_id
                 f.write(f"{query.query_id} Q0 {result['doc_id']} {i + 1} {result['score']} STANDARD\n")
     

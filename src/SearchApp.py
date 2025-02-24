@@ -158,10 +158,10 @@ class SearchApp:
         tree = ET.parse(file_path)
         root = tree.getroot()
         
-        for top in root.findall("top"):
+        for idx,top in enumerate(root.findall("top")):
             query_id = top.find("num").text.strip()
             query_text = top.find("title").text.strip()
-            query_obj = Query(query_id, query_text)
+            query_obj = Query(idx+1, query_text)
             self.queries.append(query_obj)
         
         return self.queries
