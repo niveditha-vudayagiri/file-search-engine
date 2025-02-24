@@ -23,7 +23,8 @@ class IconLoadUtilities:
 class TRECUtilities:
     def __init__(self, output_path="output.trec"):
         self.query = None
-        self.output_path = output_path
+        self.output_path = "trec_eval-main/results_testing/"+output_path
+
         # Clear the file upon initialization
         open(self.output_path, "w").close()
 
@@ -32,5 +33,6 @@ class TRECUtilities:
             for i, result in enumerate(results[:100]):
                 # query_id iter document_id rank similarity run_id
                 f.write(f"{query.query_id} Q0 {result['doc_id']} {i + 1} {result['score']} STANDARD\n")
+
     
         
