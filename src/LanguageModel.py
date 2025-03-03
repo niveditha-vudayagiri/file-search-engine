@@ -5,7 +5,7 @@ from TextPreprocessor import TextPreprocessor
 import copy
 
 class MultinomialLanguageModel:
-    def __init__(self, tfidf_builder, trec, mu=2000, lambda_unk=0.0001):
+    def __init__(self, tfidf_builder, trec, mu=2000, lambda_unk=0.0001, lambda_jm=0.1):
         """
         Initialize the Language Model for Information Retrieval.
         :param tfidf_builder: An instance of the TF_IDF_Builder class.
@@ -18,6 +18,8 @@ class MultinomialLanguageModel:
         self.trec = trec
         self.mu = mu
         self.lambda_unk = lambda_unk  # Smoothing for unknown words
+        self.lambda_jm = lambda_jm  # Jelinek-Mercer lambda
+
         self.documents = []
 
         self.total_terms = 0
@@ -100,7 +102,7 @@ class MultinomialLanguageModel:
 
         return entropy, coverage
 
-    def search(self, query):
+    def search(self, query, smoothing="dirichlet"):
         """
         Search for the query in the document collection using the Language Model.
         Returns ranked results with filename, filepath, similarity score, and snippet.
@@ -111,7 +113,7 @@ class MultinomialLanguageModel:
         processed_query = self.preprocess_query(query.query_name)
         entropy, coverage = self.compute_lm_entropy_and_coverage(processed_query)
 
-        scores = [(idx, self.compute_lm_score(processed_query, idx)) for idx in range(len(self.tfidf_builder.documents))]
+        scores = [(idx, self.compute_lm_score(processed_query, idx,smoothing=smoothing)) for idx in range(len(self.tfidf_builder.documents))]
         scores = sorted(scores, key=lambda x: x[1], reverse=True)
 
         all_results = []
@@ -132,17 +134,33 @@ class MultinomialLanguageModel:
 
         self.trec.save_to_trec(query, all_results)
         return all_results
-
-    def compute_lm_score(self, query, doc_idx):
+    
+    def compute_lm_score(self, query, doc_idx, smoothing="dirichlet"):
         """
-        Compute the Language Model score for a given query and document index using Dirichlet smoothing.
+        Compute the Language Model score for a given query and document index.
+        Supports Dirichlet and Jelinek-Mercer smoothing.
+
+        :param query: The preprocessed query text.
+        :param doc_idx: The index of the document.
+        :param smoothing: "dirichlet" for Dirichlet smoothing, "jm" for Jelinek-Mercer smoothing.
+        """
+        if smoothing == "dirichlet":
+            return self.compute_dirichlet_score(query, doc_idx)
+        elif smoothing == "jm":
+            return self.compute_jm_score(query, doc_idx)
+        else:
+            raise ValueError("Invalid smoothing method. Choose 'dirichlet' or 'jm'.")
+
+    def compute_dirichlet_score(self, query, doc_idx):
+        """
+        Compute the Language Model score using Dirichlet smoothing.
         """
         query_terms = word_tokenize(query.lower())
         score = 0
+        doc_id = self.documents[doc_idx].doc_id
 
         for term in query_terms:
-            doc_id = self.documents[doc_idx].doc_id
-            doc_term_freq = self.doc_frequencies.get(doc_id).get(term, 0)  # Use the updated doc_frequencies
+            doc_term_freq = self.doc_frequencies.get(doc_id, {}).get(term, 0)  
             unk = self.lambda_unk / len(self.probabilities)
             collection_prob = self.collection_probability.get(term, unk)
 
@@ -151,6 +169,26 @@ class MultinomialLanguageModel:
             score += math.log(term_probability)
 
         return score
+
+    def compute_jm_score(self, query, doc_idx):
+        """
+        Compute the Language Model score using Jelinek-Mercer smoothing.
+        """
+        query_terms = word_tokenize(query.lower())
+        score = 0
+        doc_id = self.documents[doc_idx].doc_id
+
+        for term in query_terms:
+            doc_term_freq = self.doc_frequencies.get(doc_id, {}).get(term, 0)  
+            collection_prob = self.collection_probability.get(term, 0)
+
+            # Jelinek-Mercer smoothing formula
+            term_probability = (1 - self.lambda_jm) * (doc_term_freq / (self.doc_lengths[doc_idx] + 1e-10)) + self.lambda_jm * collection_prob
+            term_probability = max(term_probability, 1e-10)  # Avoid log(0)
+            score += math.log(term_probability)
+
+        return score
+
 
     def generate_snippet(self, content, query_terms, snippet_length=30):
         """

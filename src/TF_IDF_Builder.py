@@ -12,7 +12,12 @@ class TF_IDF_Builder:
         :param preprocessor: Preprocessing object to clean and preprocess text.
         """
         self.preprocessor = preprocessor
-        self.vectorizer = TfidfVectorizer(lowercase=True, stop_words="english", use_idf=True)
+        self.vectorizer = TfidfVectorizer(lowercase=True, 
+                                          stop_words="english",
+                                          use_idf=True,
+                                          sublinear_tf=True,
+                                          norm="l2",
+                                          smooth_idf=True)
         self.documents = []
         self.tfidf_matrix = None
 

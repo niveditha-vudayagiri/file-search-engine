@@ -4,7 +4,7 @@ from nltk.corpus import stopwords, wordnet
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 import spacy
 from nltk.util import ngrams
-from    symspellpy      import SymSpell, Verbosity  # symspellpy forSpelling Correction
+from   symspellpy  import SymSpell, Verbosity  # symspellpy forSpelling Correction
 import pkg_resources
 from gensim.models.phrases import Phrases, Phraser  # For n-gram formation
 from textblob import TextBlob   # textblob for PoS tagging

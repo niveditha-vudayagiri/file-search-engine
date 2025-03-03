@@ -20,7 +20,8 @@ class SearchApp:
         self.master = master
         self.tf_idf= TF_IDF_Builder(TextPreprocessor())
         self.vsm = VectorSpaceModel(self.tf_idf, TRECUtilities( "vsm_results.trec"))
-        self.lm = MultinomialLanguageModel(self.tf_idf,TRECUtilities( "lm_results.trec"))
+        self.lm = MultinomialLanguageModel(self.tf_idf,TRECUtilities( "lm_results.trec"),
+                                            mu=1000, lambda_unk=0.0001, lambda_jm=0.2)
         self.bm25 = BM25(self.tf_idf,TRECUtilities( "bm25_results.trec"))
         self.folder_path = None
         self.current_page = 1
@@ -170,7 +171,7 @@ class SearchApp:
         self.current_page = 1
         vsm_results = self.vsm.search(query)
         bm25_results = self.bm25.search(query)
-        lm_results = self.lm.search(query)
+        lm_results = self.lm.search(query, smoothing="jm")
 
         self.results = self.combine_results(vsm_results, bm25_results, lm_results)
         curr_results = self.get_curr_results(self.current_page, 15)
