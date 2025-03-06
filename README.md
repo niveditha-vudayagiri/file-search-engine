@@ -35,9 +35,7 @@ Copy the result files to trec_eval-main and run below file
 finaltest.sh
 
 # Results & Observations
-- BM25 outperforms other models in ranking effectiveness due to term frequency saturation and document length normalization.
-- VSM benefits from dimensionality reduction techniques, improving retrieval precision.
-- Language Model offers probabilistic insights but struggles with data sparsity.
+- LM outperforms other models in ranking effectiveness due to term frequency saturation and document length normalization.
 
 # Future Enhancements
 - Integrate neural IR models (e.g., BERT-based ranking).
