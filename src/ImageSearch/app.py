@@ -10,7 +10,7 @@ import time
 
 nltk.download("punkt")  # Ensure tokenizer is available
 
-app = Flask(__name_="ImageSearchApplication")
+app = Flask(__name__)
 
 # Load BM25 index & corpus on startup
 with open("bm25_index.pkl", "rb") as f:
