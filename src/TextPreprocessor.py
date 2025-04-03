@@ -65,7 +65,7 @@ class TextPreprocessor:
         tokenizedText   = []      # Empty list for storing sentences of tokenized words
 
         for sentence in text:
-            sentence    = self.sym_spell.lookup_compound(sentence, max_edit_distance = MAX_EDIT_DIST)[0].term    # Spelling Correction
+            #sentence    = self.sym_spell.lookup_compound(sentence, max_edit_distance = MAX_EDIT_DIST)[0].term    # Spelling Correction
             token_words = TreebankWordTokenizer().tokenize(sentence)    
             token_words = [word for word in token_words if (word.isalnum() and word.isalpha())]             # Only considering tokens with ALPHABETS
             token_words = [word for word in token_words if word not in self.spacy_stopwords] 

@@ -180,6 +180,15 @@ class SearchApp:
         await self.display_results(query.results)
 
     async def search(self):
+        """
+        Asynchronously performs a search operation.
+
+        This method reads queries from an XML file located at `self.folder_path + "/cran.qry.xml"`,
+        splits them into individual queries, and processes each query asynchronously.
+
+        Returns:
+            None
+        """
 
         #Read queries from folder_path+"cran.qry.xml" and split to queries
         self.queries = self.load_queries(self.folder_path+"/cran.qry.xml")
@@ -188,8 +197,20 @@ class SearchApp:
 
     def combine_results(self, vsm_results, bm25_results, lm_results):
         """
-        Combines results from VSM and BM25 into a single list for display.
-        Ensures documents are merged based on doc_id, adding both scores.
+        Combines results from VSM, BM25, and LM into a single list for display.
+        
+        This method ensures that documents are merged based on their doc_id, 
+        adding scores from VSM, BM25, and LM. If a document is not present in 
+        one of the result sets, its score for that method is set to 0.
+        
+        Args:
+            vsm_results (list of dict): List of dictionaries containing VSM results.
+            bm25_results (list of dict): List of dictionaries containing BM25 results.
+            lm_results (list of dict): List of dictionaries containing LM results.
+        
+        Returns:
+            list of dict: A combined list of dictionaries with merged results 
+                          from VSM, BM25, and LM, including scores and metadata.
         """
         combined_dict = {}
 
@@ -253,6 +274,20 @@ class SearchApp:
         
     
     def get_curr_results(self, page, results_per_page):
+        """
+        Retrieves the current paginated results based on the specified page number and results per page.
+
+        Args:
+            page (int): The current page number (1-based index).
+            results_per_page (int): The number of results to display per page.
+
+        Returns:
+            dict: A dictionary containing the following keys:
+                - "results" (list): The complete list of results.
+                - "paginated_results" (list): The list of results for the current page.
+                - "has_previous_page" (bool): Indicates if there is a previous page.
+                - "has_next_page" (bool): Indicates if there is a next page.
+        """
         # Pagination logic
         total_results = len(self.results)
         start_index = (page - 1) * results_per_page
@@ -271,6 +306,15 @@ class SearchApp:
         
 
     def load_icons_in_background(self, results, font_height):
+        """
+        Loads icons for the search results in the background and updates the Treeview with the icons.
+        Args:
+            results (dict): A dictionary containing search results.
+            font_height (int): The height of the font to resize the icons accordingly.
+        Notes:
+            - This function loads the icon for text files (".txt") if it hasn't been loaded already.
+            - It updates the Treeview with the loaded icons in the main thread using the `after` method.
+        """
         # Load the icon once (or as needed for different file types)
         if(self.txt_image == None):
             self.txt_image = self.utils.load_resized_icon("img/icons/txt.png", font_height)
@@ -282,6 +326,21 @@ class SearchApp:
                 self.master.after(0, lambda idx=i: self.results_tree.item(idx, image=self.txt_image ))
                 
     async def display_results(self, results):
+        """
+        Asynchronously displays search results in the Treeview widget.
+        This method clears any previous search results from the Treeview and metadata labels,
+        then populates the Treeview with new search results. It also updates the state of 
+        pagination buttons based on the availability of previous and next pages of results.
+        Args:
+            results (dict): A dictionary containing search results and pagination information.
+                The dictionary should have the following keys:
+                    - "paginated_results" (list): A list of search result dictionaries, where each
+                      dictionary contains "file_name", "vsm_score", "bm25_score", and "lm_score".
+                    - "has_previous_page" (bool): A flag indicating if there is a previous page of results.
+                    - "has_next_page" (bool): A flag indicating if there is a next page of results.
+        Returns:
+            None
+        """
         # Clear previous results
         for item in self.results_tree.get_children():
             self.results_tree.delete(item)
@@ -304,6 +363,16 @@ class SearchApp:
         self.next_button.config(state=tk.NORMAL if results["has_next_page"] else tk.DISABLED)
 
     def show_details(self, event):
+        """
+        Display the details of the selected document in the Treeview.
+
+        This method retrieves the selected item from the Treeview, extracts its metadata,
+        and displays it in the metadata label. It also displays the document snippet in
+        the snippet text widget and highlights the search term within the snippet.
+
+        Args:
+            event: The event object that triggered this method.
+        """
         # Get selected item from Treeview
         selected_item = self.results_tree.selection()
         if not selected_item:
@@ -367,6 +436,22 @@ class SearchApp:
         asyncio.run(self.search())
     
     def view_file_content(self):
+        """
+        Displays the content of the selected file in a new popup window.
+        This method performs the following steps:
+        1. Retrieves the selected item from the Treeview.
+        2. Checks if an item is selected; if not, shows a warning message.
+        3. Gets the index of the selected document and retrieves the document details.
+        4. Logs the interaction for the query and document.
+        5. Checks if the file exists; if not, shows an error message.
+        6. Logs the document opening.
+        7. Creates a new popup window to display the file content.
+        8. Binds the close event of the popup window to log the time spent viewing the document.
+        9. Adds a scrollable Text widget to display the file content in read-only mode.
+        10. Adds a scrollbar to the Text widget for vertical scrolling.
+        Raises:
+            ValueError: If the selected item index is not valid.
+        """
         # Get selected item from Treeview
         selected_item = self.results_tree.selection()
         if not selected_item:

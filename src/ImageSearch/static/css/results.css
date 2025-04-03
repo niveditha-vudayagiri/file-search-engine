@@ -1,0 +1,77 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+/* .container{
+	width:90%
+	margin:10px auto;
+} */
+.portfolio-menu {
+  text-align: center;
+}
+.portfolio-menu ul li {
+  display: inline-block;
+  margin: 0;
+  list-style: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  -webkit-transition: all 05s ease;
+  -moz-transition: all 05s ease;
+  -ms-transition: all 05s ease;
+  -o-transition: all 05s ease;
+  transition: all 0.5s ease;
+}
+
+.portfolio-item .item {
+  /*width:303px;*/
+  float: left;
+  margin-bottom: 10px;
+}
+.portfolio-item .item img {
+  height: 220px;
+  object-fit: contain;
+} /* Fixed image size */
+
+.img-fluid {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.portfolio-item {
+  margin-bottom: 15px;
+}
+
+/* Faceted search filters */
+.filter-sidebar {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-right: 1px solid #ddd;
+}
+
+.filter-sidebar h5 {
+  margin-bottom: 15px;
+}
+
+.filter-group {
+  margin-bottom: 10px;
+}
+
+.filter-group label {
+  font-weight: bold;
+}
+
+.filter-group select {
+  width: 100%;
+  padding: 5px;
+}
+
+/* Styling for pagination */
+.pagination {
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.page-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+}

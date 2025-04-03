@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/magnific-popup.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/results.css') }}">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar for Faceted Filters -->
+            <div class="col-md-3 filter-sidebar">
+                <h5>Filters</h5>
+                <!-- Filter by Image Size -->
+                <div class="filter-group">
+                    <label for="imageSize">Image Size</label>
+                    <select id="imageSize" name="size">
+                        <option value="all">All Sizes</option>
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+                <!-- Filter by Color Detection -->
+                <div class="filter-group">
+                    <label for="imageColor">Select Color</label>
+                    <input type="color" id="imageColor" name="color" value="#ffffff">
+                </div>
+                <!-- Filter by Category -->
+                <div class="filter-group">
+                    <label for="imageCategory">Category</label>
+                    <select id="imageCategory" name="category">
+                        <option value="all">All Categories</option>
+                        {% for category in available_categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button id="applyFilters" class="btn btn-primary btn-block mt-2">Apply Filters</button>
+                <button id="resetFilters" class="btn btn-secondary btn-block mt-2">Reset Filters</button>
+                <!-- You can add more filters like image type, etc. -->
+            </div>
+
+            <!-- Main Results Section -->
+            <div class="col-md-9">
+                <h1 class="text-center mt-4">Search Results</h1>
+                <p class="text-center">{{ total_results }} results...</p>
+
+                <div class="portfolio-item row">
+                    {% for item in results %}
+                        <div class="col-lg-3 col-md-4 col-sm-6 col-12">
+                            <div class="item">
+                                <div class="image-container">
+                                    <img class="img-fluid inspect-trigger" src="{{ item.image_url }}" alt="{{ item.description }}"
+                                        data-image="{{ item.image_url }}"
+                                        data-objects="{{ item.detected_objects }}"
+                                        data-size="{{ item.image_size }}"
+                                        data-color="{{ item.dominant_color }}"
+                                        data-categories="{{ item.categories }}"
+                                        data-caption="{{item.caption}}"
+                                        >
+                                </div>
+                                <p class="text-center">{{ item.detected_objects }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination Controls -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('search_results', query=query, page=page-1) }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        {% set start_page = (1 if page - 5 < 1 else page - 5) %}
+                        {% set end_page = (total_pages if page + 5 > total_pages else page + 5) %}
+                        {% for p in range(start_page, end_page + 1) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('search_results', query=query, page=p) }}">{{ p }}</a>
+                            </li>
+                        {% endfor %}
+                        {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('search_results', query=query, page=page+1) }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+
+                <!-- Back to Search Button -->
+                <div class="text-center mt-3">
+                    <a href="/" class="btn btn-secondary">Back to Search</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 inspect-box d-none" id="inspectBox">
+        <h5>Image Details</h5>
+        <img id="inspectImage" src="" class="img-fluid" alt="Selected Image">
+        <p><strong>Detected Objects:</strong> <span id="inspectObjects"></span></p>
+        <p><strong>Size:</strong> <span id="inspectSize"></span></p>
+        <p><strong>Color:</strong> <span id="inspectColor"></span></p>
+        <p><strong>Categories:</strong> <span id="inspectCategories"></span></p>
+        <p><strong>Caption:</strong> <span id="inspectCaption"></span></p>
+        <button id="closeInspect" class="btn btn-danger btn-block mt-2">Close</button>
+    </div>
+
+    <!-- Bootstrap & jQuery -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.js"></script>
+
+    <!-- Image Popup -->
+    <script>
+        $(document).ready(function() {
+            var originalParams = new URLSearchParams(window.location.search);
+
+            $('#applyFilters').click(function() {
+                var selectedColor = $('#imageColor').val();
+                var imageSize = $('#imageSize').val();
+                var imageCategory = $('#imageCategory').val();
+
+                var newParams = new URLSearchParams(originalParams.toString()); // Preserve original search term
+
+                if (selectedColor !== "#ffffff") {
+                    newParams.set('color', selectedColor);
+                } else {
+                    newParams.delete('color');
+                }
+
+                if (imageSize !== "all") {
+                    newParams.set('size', imageSize);
+                } else {
+                    newParams.delete('size');
+                }
+
+                if (imageCategory !== "all") {
+                    newParams.set('category', imageCategory);
+                } else {
+                    newParams.delete('category');
+                }
+
+                window.location.search = newParams.toString();
+            });
+
+            $('#resetFilters').click(function() {
+                var resetParams = new URLSearchParams(originalParams.toString());
+                resetParams.delete('color');
+                resetParams.delete('size');
+                resetParams.delete('category');
+                window.location.search = resetParams.toString(); // Reset filters but keep search term
+            });
+
+            $('.inspect-trigger').click(function() {
+                var imageUrl = $(this).data('image');
+                var objects = $(this).data('objects');
+                objects = objects && typeof objects === 'string' && objects.trim() !== '' ? objects.split(',') : ['N/A'];
+                var size = $(this).data('size');
+                var color = $(this).data('color');
+                var categories = $(this).data('categories');
+                categories = categories && typeof categories === 'string' && categories.trim() !== '' ? categories.split(',') : ['N/A'];
+                var caption = $(this).data('caption') && $(this).data('caption').trim() !== '' ? $(this).data('caption') : 'Unknown';
+
+                $('#inspectImage').attr('src', imageUrl);
+                $('#inspectObjects').text(objects.join(', '));
+                $('#inspectSize').text(size || 'Unknown');
+                $('#inspectColor').text(color || 'Not Detected');
+                $('#inspectCategories').text(categories.join(', '));
+                $('#inspectCaption').text(caption);
+
+                $('#inspectBox').removeClass('d-none');
+            });
+
+            $('#closeInspect').click(function() {
+                $('#inspectBox').addClass('d-none');
+            });
+        });
+    </script>
+</body>
+</html>
