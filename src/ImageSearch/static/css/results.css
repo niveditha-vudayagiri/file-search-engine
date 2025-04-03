@@ -75,3 +75,14 @@ body {
   background-color: #007bff;
   border-color: #007bff;
 }
+
+.image-container {
+    height: 200px; /* Set a fixed height */
+    overflow: hidden; /* Hide overflow */
+}
+.image-container img {
+    height: 100%; /* Make image fill the container */
+    width: auto; /* Maintain aspect ratio */
+    display: block; /* Remove inline spacing */
+    margin: 0 auto; /* Center image */
+}
