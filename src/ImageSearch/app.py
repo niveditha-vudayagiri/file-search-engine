@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 nltk.download("punkt")  # Ensure tokenizer is available
+nltk.download('wordnet')
 
 app = Flask(__name__)
 
