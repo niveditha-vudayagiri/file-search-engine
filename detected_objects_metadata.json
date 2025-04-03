@@ -1,0 +1,352 @@
+{
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Apple_Corer.jpg/220px-Apple_Corer.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Apple_Corer.jpg/220px-Apple_Corer.jpg",
+        "image_size": [
+            220,
+            158
+        ],
+        "dominant_color": [
+            [
+                221,
+                219,
+                220
+            ],
+            [
+                213,
+                213,
+                213
+            ],
+            [
+                214,
+                214,
+                214
+            ]
+        ],
+        "detected_objects": [
+            "scissors"
+        ],
+        "categories": [
+            "Food preparation utensils",
+            "Domestic implements"
+        ],
+        "caption": "A modern apple corer",
+        "alt_text": "steel tube with one toothed end and an offset plastic handle on the other. Cutouts in the sides of the tube, and a lever just below the handle for pushing the core out of the tube."
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Complete_Post_Medieval_hand_made_bone_apple_corer_or_fid_%28FindID_761315%29.jpg/220px-Complete_Post_Medieval_hand_made_bone_apple_corer_or_fid_%28FindID_761315%29.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Complete_Post_Medieval_hand_made_bone_apple_corer_or_fid_%28FindID_761315%29.jpg/220px-Complete_Post_Medieval_hand_made_bone_apple_corer_or_fid_%28FindID_761315%29.jpg",
+        "image_size": [
+            220,
+            182
+        ],
+        "dominant_color": [
+            [
+                255,
+                255,
+                255
+            ],
+            [
+                255,
+                255,
+                253
+            ],
+            [
+                255,
+                254,
+                255
+            ]
+        ],
+        "detected_objects": [],
+        "categories": [
+            "Food preparation utensils",
+            "Domestic implements"
+        ],
+        "caption": "A 1700s apple corer made from acannonbone",
+        "alt_text": "A bone with a rounded end, half of the shank cut away longitudinally, and the end without the knob narrows to a point."
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/AppleCorer%26Slicer.JPG/250px-AppleCorer%26Slicer.JPG": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/AppleCorer%26Slicer.JPG/250px-AppleCorer%26Slicer.JPG",
+        "image_size": [
+            250,
+            187
+        ],
+        "dominant_color": [
+            [
+                139,
+                207,
+                6
+            ],
+            [
+                104,
+                96,
+                85
+            ],
+            [
+                0,
+                4,
+                0
+            ]
+        ],
+        "detected_objects": [
+            "apple",
+            "bowl"
+        ],
+        "categories": [
+            "Food preparation utensils",
+            "Domestic implements"
+        ],
+        "caption": "An apple cutter, with a corer and slicer",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Ashtray_and_lighter_in_hotel_room.jpg/250px-Ashtray_and_lighter_in_hotel_room.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Ashtray_and_lighter_in_hotel_room.jpg/250px-Ashtray_and_lighter_in_hotel_room.jpg",
+        "image_size": [
+            250,
+            134
+        ],
+        "dominant_color": [
+            [
+                251,
+                255,
+                255
+            ],
+            [
+                249,
+                255,
+                255
+            ],
+            [
+                252,
+                255,
+                255
+            ]
+        ],
+        "detected_objects": [
+            "bowl",
+            "dining table",
+            "cell phone"
+        ],
+        "categories": [
+            "Domestic implements",
+            "Waste containers",
+            "Smoking",
+            "Tobacciana",
+            "Tobacco accessories"
+        ],
+        "caption": "A glass ashtray, holding a lit cigarette in an edge indentation",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/2011-158-18%2C_Ash_Tray_%2CCommemorative%2C_Ship_Launching_%285915313535%29.jpg/220px-2011-158-18%2C_Ash_Tray_%2CCommemorative%2C_Ship_Launching_%285915313535%29.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/2011-158-18%2C_Ash_Tray_%2CCommemorative%2C_Ship_Launching_%285915313535%29.jpg/220px-2011-158-18%2C_Ash_Tray_%2CCommemorative%2C_Ship_Launching_%285915313535%29.jpg",
+        "image_size": [
+            220,
+            165
+        ],
+        "dominant_color": [
+            [
+                203,
+                202,
+                198
+            ],
+            [
+                210,
+                209,
+                205
+            ],
+            [
+                187,
+                184,
+                179
+            ]
+        ],
+        "detected_objects": [
+            "clock"
+        ],
+        "categories": [
+            "Domestic implements",
+            "Waste containers",
+            "Smoking",
+            "Tobacciana",
+            "Tobacco accessories"
+        ],
+        "caption": "Commemorative, decorative ashtray manufactured 1935 (photo 2011)",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Ashtray_I.JPG/220px-Ashtray_I.JPG": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Ashtray_I.JPG/220px-Ashtray_I.JPG",
+        "image_size": [
+            220,
+            162
+        ],
+        "dominant_color": [
+            [
+                179,
+                179,
+                189
+            ],
+            [
+                158,
+                156,
+                157
+            ],
+            [
+                157,
+                155,
+                156
+            ]
+        ],
+        "detected_objects": [
+            "suitcase"
+        ],
+        "categories": [
+            "Domestic implements",
+            "Waste containers",
+            "Smoking",
+            "Tobacciana",
+            "Tobacco accessories"
+        ],
+        "caption": "Wall-mounted ashtray",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Regard.jpg/220px-Regard.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Regard.jpg/220px-Regard.jpg",
+        "image_size": [
+            220,
+            277
+        ],
+        "dominant_color": [
+            [
+                113,
+                109,
+                110
+            ],
+            [
+                114,
+                110,
+                111
+            ],
+            [
+                122,
+                120,
+                125
+            ]
+        ],
+        "detected_objects": [
+            "potted plant"
+        ],
+        "categories": [
+            "Domestic implements",
+            "Waste containers",
+            "Smoking",
+            "Tobacciana",
+            "Tobacco accessories"
+        ],
+        "caption": "Standing type ashtray for passingpedestrians.",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Asbak1.jpg/220px-Asbak1.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Asbak1.jpg/220px-Asbak1.jpg",
+        "image_size": [
+            220,
+            165
+        ],
+        "dominant_color": [
+            [
+                182,
+                185,
+                194
+            ],
+            [
+                183,
+                186,
+                195
+            ],
+            [
+                184,
+                187,
+                196
+            ]
+        ],
+        "detected_objects": [
+            "dining table"
+        ],
+        "categories": [
+            "Domestic implements",
+            "Waste containers",
+            "Smoking",
+            "Tobacciana",
+            "Tobacco accessories"
+        ],
+        "caption": "An ashtray with a cover. A metal surface of the cover serves to place a cigarette during smoking, to drop ash on and to extinguish the cigarette once finished. Then, the user presses the mechanism and the ashes and the cigarette butt are dropped into the internal chamber.",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Ash_tray_of_the_McDonald%27s_restaurant%2C_Timisoara%2C_Romania.JPG/220px-Ash_tray_of_the_McDonald%27s_restaurant%2C_Timisoara%2C_Romania.JPG": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Ash_tray_of_the_McDonald%27s_restaurant%2C_Timisoara%2C_Romania.JPG/220px-Ash_tray_of_the_McDonald%27s_restaurant%2C_Timisoara%2C_Romania.JPG",
+        "image_size": [
+            220,
+            165
+        ],
+        "dominant_color": [
+            [
+                252,
+                252,
+                252
+            ],
+            [
+                252,
+                254,
+                253
+            ],
+            [
+                253,
+                253,
+                253
+            ]
+        ],
+        "detected_objects": [],
+        "categories": [
+            "Domestic implements",
+            "Waste containers",
+            "Smoking",
+            "Tobacciana",
+            "Tobacco accessories"
+        ],
+        "caption": "A trashcan equipped with an ashtray at its top. Because theashesand the potentially still lit cigarette butts are separated from other garbage, the risk of fire is reduced.",
+        "alt_text": ""
+    },
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Rucksack1.jpg/220px-Rucksack1.jpg": {
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Rucksack1.jpg/220px-Rucksack1.jpg",
+        "image_size": [
+            220,
+            221
+        ],
+        "dominant_color": [
+            [
+                255,
+                255,
+                255
+            ],
+            [
+                255,
+                254,
+                255
+            ],
+            [
+                254,
+                255,
+                255
+            ]
+        ],
+        "detected_objects": [],
+        "categories": [
+            "1910s neologisms",
+            "Bags",
+            "Camping equipment",
+            "Domestic implements",
+            "Hiking equipment",
+            "Luggage",
+            "\u00d6tzi"
+        ],
+        "caption": "A 30\u00a0L top and bottom-loadingDeuterTrans Alpine hiking backpack",
+        "alt_text": ""
+    }
+}
