@@ -43,12 +43,13 @@ def is_color_match(image_color, selected_color):
 def home():
     return render_template("index.html")  # Search page
 
-def get_color_name(rgb):
-    # Convert RGB to hex
-    hex_color = "#{:02x}{:02x}{:02x}".format(*rgb)
-    # Use a color API or library to get the name (placeholder)
-    # For simplicity, we will return the hex value
-    return hex_color
+def get_color_name(list_of_colors):
+    # Convert rgb to hex
+    hex_colors= []
+    for rgb in list_of_colors:
+        hex_color = "#{:02x}{:02x}{:02x}".format(*rgb)
+        hex_colors.append(hex_color)
+    return hex_colors
 
 @app.route("/search_results", methods=["GET"])
 def search_results():
@@ -99,8 +100,8 @@ def search_results():
                 "image_url": image_url,  
                 "description": text,
                 "image_size": metadata_for_image.get("image_size", [0, 0]),  # Use default size if not available
-                "dominant_color": get_color_name(metadata_for_image.get("dominant_color", [0, 0, 0])),  # Use default color if not available
-                "color_rgb": metadata_for_image.get("dominant_color", [0, 0, 0]),  # Use default color if not available
+                "dominant_colors": get_color_name(metadata_for_image.get("dominant_colors", [])),  # Use default color if not available
+                "color_rgb": metadata_for_image.get("dominant_colors", [0, 0, 0]),  # Use default color if not available
                 "score": final_score,  # Use boosted score if applicable
                 "detected_objects": metadata_for_image.get("detected_objects", []),  # Use default empty list if not available
                 "categories": metadata_for_image.get("categories", []),  # Use default empty list if not available
@@ -112,7 +113,7 @@ def search_results():
     filtered_results = []
     for result in results:
         image_url = result["image_url"]
-        color = result["color_rgb"]
+        
         size = result["image_size"]
 
         # Filter images based on the selected size
@@ -134,12 +135,13 @@ def search_results():
 
         # Filter images based on the selected color
         # Skip images that don't match the selected color
-        if color_filter and not is_color_match(color, color_filter):
+        colors = result["color_rgb"]
+        if color_filter and not any(is_color_match(color, color_filter) for color in colors):
             continue
 
         # Filter images based on the selected categories
         if category_filter and category_filter not in result["categories"]:
-                continue
+            continue
             
         # Append the result if it passes all filters
         filtered_results.append(result)
@@ -172,4 +174,4 @@ def search_results():
     )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

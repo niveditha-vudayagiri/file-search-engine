@@ -5,7 +5,7 @@
             220,
             158
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 221,
                 219,
@@ -38,7 +38,7 @@
             220,
             182
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 255,
                 255,
@@ -69,7 +69,7 @@
             250,
             187
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 139,
                 207,
@@ -103,7 +103,7 @@
             250,
             134
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 251,
                 255,
@@ -121,9 +121,9 @@
             ]
         ],
         "detected_objects": [
-            "bowl",
+            "cell phone",
             "dining table",
-            "cell phone"
+            "bowl"
         ],
         "categories": [
             "Domestic implements",
@@ -141,7 +141,7 @@
             220,
             165
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 203,
                 202,
@@ -177,7 +177,7 @@
             220,
             162
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 179,
                 179,
@@ -213,7 +213,7 @@
             220,
             277
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 113,
                 109,
@@ -249,7 +249,7 @@
             220,
             165
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 182,
                 185,
@@ -285,7 +285,7 @@
             220,
             165
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 252,
                 252,
@@ -319,7 +319,7 @@
             220,
             221
         ],
-        "dominant_color": [
+        "dominant_colors": [
             [
                 255,
                 255,

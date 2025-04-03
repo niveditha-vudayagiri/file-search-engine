@@ -60,12 +60,11 @@
                                         data-image="{{ item.image_url }}"
                                         data-objects="{{ item.detected_objects }}"
                                         data-size="{{ item.image_size }}"
-                                        data-color="{{ item.dominant_color }}"
+                                        data-color="{{ item.dominant_colors }}"
                                         data-categories="{{ item.categories }}"
                                         data-caption="{{item.caption}}"
                                         >
                                 </div>
-                                <p class="text-center">{{ item.detected_objects }}</p>
                             </div>
                         </div>
                     {% endfor %}
