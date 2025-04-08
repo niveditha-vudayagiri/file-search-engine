@@ -14,7 +14,7 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar for Faceted Filters -->
-            <div class="col-md-3 filter-sidebar">
+            <div class="col-md-3 col-sm-6 filter-sidebar">
                 <h5>Filters</h5>
                 <!-- Filter by Image Size -->
                 <div class="filter-group">
@@ -47,26 +47,23 @@
             </div>
 
             <!-- Main Results Section -->
-            <div class="col-md-9">
+            <div class="col-md-9 col-sm-6">
                 <h1 class="text-center mt-4">Search Results</h1>
                 <p class="text-center">{{ total_results }} results...</p>
 
-                <div class="figure row">
-                    <div class="image-grid">
-                        {% for item in results %}
-                            <div class="image-container">
-                                <img class="img-fluid inspect-trigger" src="{{ item.image_url }}" 
-                                    data-image="{{ item.image_url }}"
-                                    data-objects="{{ item.detected_objects }}"
-                                    data-size="{{ item.image_size }}"
-                                    data-color="{{ item.dominant_colors }}"
-                                    data-categories="{{ item.categories }}"
-                                    data-caption="{{item.caption}}"
-                                    alt="Image {{ loop.index }}">
-                                <p>{{ item.page_title }} {{item.detected_objects}}</p>
-                            </div>
-                        {% endfor %}
-                    </div>
+                <div class="masonry-grid">
+                    {% for item in results %}
+                        <div class="masonry-item">
+                            <img class="inspect-trigger masonry-image" src="{{ item.image_url }}" 
+                                data-image="{{ item.image_url }}"
+                                data-objects="{{ item.detected_objects }}"
+                                data-size="{{ item.image_size }}"
+                                data-color="{{ item.dominant_colors }}"
+                                data-categories="{{ item.categories }}"
+                                data-caption="{{item.caption}}">
+                            <p>{{ item.page_title }}{% if item.detected_objects %} {{ item.detected_objects }}{% endif %}</p>
+                        </div>
+                    {% endfor %}
                 </div>
 
                 <!-- Pagination Controls -->
@@ -129,7 +126,8 @@
 
                 var newParams = new URLSearchParams(originalParams.toString()); // Preserve original search term
 
-                if (selectedColor !== "#ffffff") {
+                var defaultColor = $('#imageColor').prop('defaultValue');
+                if (selectedColor !== defaultColor) {
                     newParams.set('color', selectedColor);
                 } else {
                     newParams.delete('color');
@@ -165,8 +163,8 @@
                 var size = $(this).data('size');
                 var color = $(this).data('color');
                 var categories = $(this).data('categories');
-                categories = categories && typeof categories === 'string' && categories.trim() !== '' ? categories.split(',') : ['N/A'];
-                var caption = $(this).data('caption') && $(this).data('caption').trim() !== '' ? $(this).data('caption') : 'Unknown';
+                categories = categories && typeof categories === 'string' && categories.trim() !== '' ? categories.split(',').map(item => item.trim()) : ['N/A'];
+                var caption = ($(this).data('caption') !== undefined && $(this).data('caption') !== null && $(this).data('caption').trim() !== '') ? $(this).data('caption') : 'Unknown';
 
                 $('#inspectImage').attr('src', imageUrl);
                 $('#inspectObjects').text(objects.join(', '));

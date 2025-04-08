@@ -7,9 +7,14 @@ from nltk.stem import WordNetLemmatizer
 import requests
 import numpy as np
 import time
+from nltk.corpus import stopwords, wordnet
+import spacy
 
 nltk.download("punkt")  # Ensure tokenizer is available
 nltk.download('wordnet')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
+nlp = spacy.load("en_core_web_sm")
 
 app = Flask(__name__)
 
@@ -24,10 +29,39 @@ with open("image_url_to_text.pkl", "rb") as f:
 with open("detected_objects_metadata.json", "r") as f:
     metadata = json.load(f)  # {image_url: [list of detected objects]}
 
-RESULTS_PER_PAGE = 16  # Number of results per page
+RESULTS_PER_PAGE = 20  # Number of results per page
 SCORE_THRESHOLD = 0.25  # Minimum normalized BM25 score for inclusion
 BOOST_FACTOR = 3  # Boost multiplier for images with detected objects
+MAX_SYNONYMS = 3  # Maximum number of synonyms to fetch
+def get_wordnet_synonyms(word):
+    """Fetch synonyms from WordNet."""
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name().replace("_", " "))  # Replace underscores
+    return list(synonyms)[: MAX_SYNONYMS]  # Limit synonyms
 
+def get_spacy_synonyms(word):
+    """Find semantically similar words using spaCy word vectors."""
+    word_token = str(word)
+    similar_words = []
+    for candidate in nlp.vocab:
+        if candidate.is_alpha and candidate.has_vector:  # Filter valid words
+            similarity = word_token.similarity(nlp(candidate.text))
+            if similarity > 0.6:  # Only include words with strong similarity
+                similar_words.append((candidate.text, similarity))
+    similar_words.sort(key=lambda x: x[1], reverse=True)
+    return [word[0] for word in similar_words[: MAX_SYNONYMS]]
+
+def synonym_expansion(word):
+    """Expand words with synonyms using WordNet and spaCy."""
+    synonyms = set()
+    synonyms.update(get_wordnet_synonyms(word))
+    synonyms.update(get_spacy_synonyms(word))
+
+    if synonyms:
+        return f"({word} {' '.join(synonyms)})"
+    return word
 def is_color_match(image_color, selected_color):
     # Convert colors to RGB
     def hex_to_rgb(hex_color):
@@ -66,7 +100,8 @@ def search_results():
     tokens = word_tokenize(query.lower())
     tokens = [word for word in tokens if word.isalnum()]  # Remove non-alphanumeric characters
     tokens = [lemmatizer.lemmatize(word) for word in tokens]  # Lemmatization
-
+    tokens.extend([synonym_expansion(word) for word in tokens])  # Synonym Expansion - Can improve query recall
+    print(tokens)
     scores = bm25.get_scores(tokens)  # BM25 similarity scores
 
     # ✅ Normalize BM25 scores
