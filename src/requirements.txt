@@ -16,3 +16,4 @@ lxml==4.9.3
 tqdm==4.66.1
 werkzeug==2.2.3
 rank-bm25==0.2.2
+spacy==3.8.4
