@@ -83,6 +83,7 @@ class OfflineIndexer:
                 "categories": doc.categories,
                 "caption": doc.caption,
                 "alt_text": doc.alt_text,
+                "page_title": doc.file_name
             }
 
             return metadata
@@ -128,7 +129,7 @@ class OfflineIndexer:
 
         print(f"Total documents indexed: {len(self.documents)}")
 
-        for doc in self.documents[:10]: 
+        for doc in self.documents[:1100]: 
             if doc.path:  
                 if doc.path and doc.path.startswith("http"):  # Ensure doc.path is a valid URL
                     image = self.fetch_image(doc.path)  # Fetch image from URL

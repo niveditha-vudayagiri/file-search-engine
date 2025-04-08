@@ -34,7 +34,6 @@ def is_color_match(image_color, selected_color):
         return tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
 
     selected_rgb = hex_to_rgb(selected_color)
-    print(f"Selected RGB: {selected_rgb}, Image Color: {image_color}")
 
     # Check if all RGB values are within 50 of each other
     threshold = 100
@@ -68,7 +67,6 @@ def search_results():
     tokens = [word for word in tokens if word.isalnum()]  # Remove non-alphanumeric characters
     tokens = [lemmatizer.lemmatize(word) for word in tokens]  # Lemmatization
 
-    print(f"Query tokens: {tokens}")
     scores = bm25.get_scores(tokens)  # BM25 similarity scores
 
     # ✅ Normalize BM25 scores
@@ -77,7 +75,6 @@ def search_results():
     results = []
 
     if all(score == 0 for score in scores):
-        print("No relevant results found!")
         return render_template("results.html", results=[], query=query, page=page, total_pages=0, total_results=0)
 
     for i, (image_url, text) in enumerate(image_url_to_text.items()):
@@ -93,8 +90,7 @@ def search_results():
             # Check how many tokens match detected objects and apply proportional boost
             matching_tokens = sum(1 for token in tokens if token in metadata_list)
             if matching_tokens > 0:
-                print(f"Applying boost for {matching_tokens} matching tokens")
-                final_score *= (BOOST_FACTOR * matching_tokens)  # Apply boost proportional to matches
+                 final_score *= (BOOST_FACTOR * matching_tokens)  # Apply boost proportional to matches
 
             # ✅ Add metadata to results
             results.append({
@@ -108,6 +104,7 @@ def search_results():
                 "categories": metadata_for_image.get("categories", []),  # Use default empty list if not available
                 "caption": metadata_for_image.get("caption", ""),  # Use default empty string if not available
                 "alt_text": metadata_for_image.get("alt_text", ""),  # Use default empty string if not available
+                "page_title": metadata_for_image.get("page_title", "")  # Use default empty string if not available
             })
 
     # ✅ Filter results based on size and color
@@ -175,4 +172,4 @@ def search_results():
     )
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

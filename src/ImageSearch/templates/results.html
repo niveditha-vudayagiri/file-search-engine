@@ -6,7 +6,7 @@
     <title>Search Results</title>
     
     <!-- Bootstrap CSS -->
-    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/magnific-popup.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/results.css') }}">
 </head>
@@ -51,23 +51,22 @@
                 <h1 class="text-center mt-4">Search Results</h1>
                 <p class="text-center">{{ total_results }} results...</p>
 
-                <div class="portfolio-item row">
-                    {% for item in results %}
-                        <div class="col-lg-3 col-md-4 col-sm-6 col-12">
-                            <div class="item">
-                                <div class="image-container">
-                                    <img class="img-fluid inspect-trigger" src="{{ item.image_url }}" alt="{{ item.description }}"
-                                        data-image="{{ item.image_url }}"
-                                        data-objects="{{ item.detected_objects }}"
-                                        data-size="{{ item.image_size }}"
-                                        data-color="{{ item.dominant_colors }}"
-                                        data-categories="{{ item.categories }}"
-                                        data-caption="{{item.caption}}"
-                                        >
-                                </div>
+                <div class="figure row">
+                    <div class="image-grid">
+                        {% for item in results %}
+                            <div class="image-container">
+                                <img class="img-fluid inspect-trigger" src="{{ item.image_url }}" 
+                                    data-image="{{ item.image_url }}"
+                                    data-objects="{{ item.detected_objects }}"
+                                    data-size="{{ item.image_size }}"
+                                    data-color="{{ item.dominant_colors }}"
+                                    data-categories="{{ item.categories }}"
+                                    data-caption="{{item.caption}}"
+                                    alt="Image {{ loop.index }}">
+                                <p>{{ item.page_title }} {{item.detected_objects}}</p>
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <!-- Pagination Controls -->
@@ -114,7 +113,7 @@
 
     <!-- Bootstrap & jQuery -->
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.js"></script>
 
